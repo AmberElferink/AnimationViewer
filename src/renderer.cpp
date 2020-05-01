@@ -6,6 +6,8 @@
 #include <SDL_video.h>
 #include <glad/glad.h>
 
+#include <scene.h>
+
 #if __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
@@ -15,11 +17,15 @@
 #include "scene.h"
 #include "ui.h"
 
+#include "private_impl/graphics/buffer.h"
 #include "private_impl/graphics/framebuffer.h"
 #include "private_impl/graphics/indexed_mesh.h"
 #include "private_impl/graphics/texture.h"
 
 #include "private_impl/graphics/shaders/bridging_header.h"
+
+#include "private_impl/graphics/shaders/full_screen_vert_glsl.h"
+#include "private_impl/graphics/shaders/rayleigh_sky_frag_glsl.h"
 
 using namespace AnimationViewer::Graphics;
 
@@ -94,6 +100,8 @@ Renderer::Renderer(SDL_Window* window)
     back_buffer_ = Framebuffer::default_framebuffer();
     create_geometry();
     create_pipeline();
+
+    glEnable(GL_CULL_FACE);
   }
 }
 
@@ -112,10 +120,30 @@ Renderer::render(const Scene& scene,
     return;
   }
 
-  // auto& cam = scene.get_camera();
+  const auto& camera = scene.active_camera();
+  {
+    mat4 view_matrix = glm::transpose(camera.matrix());
+    vec3 direction_to_sun = glm::vec3(0, 1, 0);
+    sky_uniform_t sky_uniform{
+      view_matrix,
+      direction_to_sun,
+      camera.fov_y(),
+      width_,
+      height_,
+    };
+    rayleigh_sky_uniform_buffer_->upload(&sky_uniform, sizeof(sky_uniform));
+  }
 
-  // clearing screen
+  // clearing screen with a color which should never be seen
   back_buffer_->clear({ clear_color });
+
+  {
+    ScopedDebugGroup group("Rayleigh Sky in Screen Space");
+    rayleigh_sky_pipeline_->bind();
+    full_screen_quad_->bind();
+    rayleigh_sky_uniform_buffer_->bind(0);
+    full_screen_quad_->draw();
+  }
 
   ui.draw();
   glFinish();
@@ -138,8 +166,25 @@ Renderer::rebuild_back_buffers()
 
 void
 Renderer::create_geometry()
-{}
+{
+  full_screen_quad_ = IndexedMesh::create_full_screen_quad();
+}
 
 void
 Renderer::create_pipeline()
-{}
+{
+  // Sky pipeline
+  {
+    Pipeline::CreateInfo info{
+      .vertex_shader_binary = full_screen_vert_glsl,
+      .vertex_shader_size = sizeof(full_screen_vert_glsl) / sizeof(full_screen_vert_glsl[0]),
+      .vertex_shader_entry_point = "main",
+      .fragment_shader_binary = rayleigh_sky_frag_glsl,
+      .fragment_shader_size = sizeof(rayleigh_sky_frag_glsl) / sizeof(rayleigh_sky_frag_glsl[0]),
+      .fragment_shader_entry_point = "main",
+    };
+    rayleigh_sky_pipeline_ = Pipeline::create(Pipeline::Type::RasterOpenGL, info);
+    rayleigh_sky_uniform_buffer_ = Buffer::create(sizeof(sky_uniform_t));
+    rayleigh_sky_uniform_buffer_->set_debug_name("rayleigh_sky_uniform_buffer_");
+  }
+}

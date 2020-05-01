@@ -22,6 +22,9 @@ const float full_screen_quad_vertices[8] = {
   1.0f,
 };
 const uint16_t full_screen_quad_indices[6] = { 0, 1, 2, 2, 3, 0 };
+const std::vector<IndexedMesh::MeshAttributes> full_screen_quad_attributes = {
+  IndexedMesh::MeshAttributes{ GL_FLOAT, 2 },
+};
 } // namespace
 
 std::unique_ptr<IndexedMesh>
@@ -50,7 +53,7 @@ std::unique_ptr<IndexedMesh>
 IndexedMesh::create_full_screen_quad()
 {
   auto fullscreen_quad =
-    IndexedMesh::create(std::vector<IndexedMesh::MeshAttributes>{ MeshAttributes{ GL_FLOAT, 2 } },
+    IndexedMesh::create(full_screen_quad_attributes,
                         full_screen_quad_vertices,
                         sizeof(full_screen_quad_vertices),
                         full_screen_quad_indices,

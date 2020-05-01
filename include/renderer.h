@@ -15,7 +15,10 @@ class Ui;
 } // namespace AnimationViewer
 
 namespace AnimationViewer::Graphics {
+class Buffer;
 struct Framebuffer;
+struct IndexedMesh;
+class Pipeline;
 
 class Renderer
 {
@@ -40,5 +43,8 @@ private:
   uint16_t width_;
   uint16_t height_;
   std::unique_ptr<Framebuffer> back_buffer_;
+  std::unique_ptr<IndexedMesh> full_screen_quad_;
+  std::unique_ptr<Buffer> rayleigh_sky_uniform_buffer_;
+  std::unique_ptr<Pipeline> rayleigh_sky_pipeline_;
 };
 } // namespace AnimationViewer::Graphics

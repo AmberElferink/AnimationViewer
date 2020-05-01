@@ -9,6 +9,8 @@
 #define out
 #define inout
 #define REF &
+using glm::vec3;
+using glm::mat4;
 
 #else
 #define uint32_t uint
@@ -37,5 +39,14 @@
 #define REF
 
 #endif
+
+struct alignas(16) sky_uniform_t
+{
+  mat4 camera_rotation_matrix;
+  vec3 direction_to_sun;
+  float camera_fov_y;
+  uint32_t width;
+  uint32_t height;
+};
 
 #endif // BRIDGING_HEADER_H

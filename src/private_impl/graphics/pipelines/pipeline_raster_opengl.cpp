@@ -6,27 +6,6 @@
 
 using namespace AnimationViewer::Graphics;
 
-PipelineRasterOpenGL::PipelineRasterOpenGL(uint32_t program)
-  : program(program)
-{}
-
-PipelineRasterOpenGL::~PipelineRasterOpenGL()
-{
-  glDeleteProgram(program);
-}
-
-void
-PipelineRasterOpenGL::bind()
-{
-  glUseProgram(program);
-}
-
-uint32_t
-PipelineRasterOpenGL::get_native_handle() const
-{
-  return program;
-}
-
 std::unique_ptr<Pipeline>
 PipelineRasterOpenGL::create(const CreateInfo& info)
 {
@@ -37,18 +16,18 @@ PipelineRasterOpenGL::create(const CreateInfo& info)
   options.version = 300;
   options.es = true;
 
-  spirv_cross::CompilerGLSL vertex_shader_complier(info.vertex_shader_binary,
+  spirv_cross::CompilerGLSL vertex_shader_compiler(info.vertex_shader_binary,
                                                    info.vertex_shader_size);
-  vertex_shader_complier.set_common_options(options);
-  vertex_shader_complier.set_entry_point(info.vertex_shader_entry_point, spv::ExecutionModelVertex);
-  auto glsl_vertex_source = vertex_shader_complier.compile();
+  vertex_shader_compiler.set_common_options(options);
+  vertex_shader_compiler.set_entry_point(info.vertex_shader_entry_point, spv::ExecutionModelVertex);
+  auto glsl_vertex_source = vertex_shader_compiler.compile();
 
-  spirv_cross::CompilerGLSL fragment_shader_complier(info.fragment_shader_binary,
+  spirv_cross::CompilerGLSL fragment_shader_compiler(info.fragment_shader_binary,
                                                      info.fragment_shader_size);
-  fragment_shader_complier.set_common_options(options);
-  fragment_shader_complier.set_entry_point(info.fragment_shader_entry_point,
+  fragment_shader_compiler.set_common_options(options);
+  fragment_shader_compiler.set_entry_point(info.fragment_shader_entry_point,
                                            spv::ExecutionModelFragment);
-  auto glsl_fragment_source = fragment_shader_complier.compile();
+  auto glsl_fragment_source = fragment_shader_compiler.compile();
 
   uint32_t vertex_shader = glCreateShader(GL_VERTEX_SHADER);
   auto glsl_vertex_source_c = glsl_vertex_source.c_str();
@@ -93,4 +72,47 @@ PipelineRasterOpenGL::create(const CreateInfo& info)
   }
 
   return std::make_unique<PipelineRasterOpenGL>(program);
+}
+
+PipelineRasterOpenGL::PipelineRasterOpenGL(uint32_t program)
+  : program_(program)
+{}
+
+PipelineRasterOpenGL::~PipelineRasterOpenGL()
+{
+  glDeleteProgram(program_);
+}
+
+void
+PipelineRasterOpenGL::set_uniform(uint8_t location,
+                                  Pipeline::UniformType type,
+                                  uint32_t count,
+                                  const void* value)
+{
+  glUseProgram(program_);
+  float camera_fov_y = 0.173648178;
+  auto location_ = glGetUniformLocation(program_, "camera_fov_y");
+  if (location_ == -1) {
+    printf("get location of camera_fov_y returned -1\n");
+  }
+  switch (type) {
+    case Pipeline::UniformType::Float:
+      glUniform1f(location_, camera_fov_y);
+      break;
+    case Pipeline::UniformType::Vec2:
+      glUniform2fv(location, count, reinterpret_cast<const GLfloat*>(value));
+      break;
+  }
+}
+
+void
+PipelineRasterOpenGL::bind()
+{
+  glUseProgram(program_);
+}
+
+uint32_t
+PipelineRasterOpenGL::get_native_handle() const
+{
+  return program_;
 }

@@ -18,6 +18,11 @@ public:
   {
     RasterOpenGL,
   };
+  enum class UniformType
+  {
+    Float,
+    Vec2,
+  };
   struct CreateInfo
   {
     const uint32_t* vertex_shader_binary;
@@ -30,6 +35,11 @@ public:
   /// Factory function from which all types of pipelines can be created
   static std::unique_ptr<Pipeline> create(Type type, const CreateInfo& info);
   virtual ~Pipeline() = default;
+
+  virtual void set_uniform(uint8_t location,
+                           UniformType type,
+                           uint32_t count,
+                           const void* value) = 0;
   virtual void bind() = 0;
 
   virtual uint32_t get_native_handle() const = 0;

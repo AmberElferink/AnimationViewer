@@ -11,13 +11,21 @@ namespace AnimationViewer {
 class Camera
 {
 public:
-  Camera(const glm::mat4& matrix, float y_fov) noexcept;
+  Camera(const glm::vec3& origin, float yaw, float pitch, float fov_y) noexcept;
 
   /// Update camera state based on SDL events
   void process_event(const SDL_Event& event, std::chrono::microseconds& dt);
+  float fov_y() const;
+  glm::vec3 origin() const;
+  glm::mat4 perspective(float aspect) const;
+  glm::mat4 matrix() const;
 
 private:
-  glm::mat4 matrix_;
-  float y_fov_;
+  glm::vec3 origin_;
+  float yaw_;
+  float pitch_;
+  float fov_y_;
+  const float near_;
+  const float far_;
 };
 } // namespace AnimationViewer

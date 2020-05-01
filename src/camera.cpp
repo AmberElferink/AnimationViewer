@@ -1,21 +1,23 @@
 #include "camera.h"
 #include <SDL_events.h>
 
-#define _USE_MATH_DEFINES
-#include <glm/geometric.hpp>
-#include <math.h>
+#include <glm/gtx/euler_angles.hpp>
 
 using namespace AnimationViewer;
 
-Camera::Camera(const glm::mat4& matrix, float y_fov_deg) noexcept
-  : matrix_(matrix)
-  , y_fov_(y_fov_deg)
+Camera::Camera(const glm::vec3& origin, float yaw, float pitch, float fov_y) noexcept
+  : origin_(origin)
+  , yaw_(yaw)
+  , pitch_(pitch)
+  , fov_y_(fov_y)
+  , near_(0.001f)
+  , far_(1000.0f)
 {}
 
 void
 Camera::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
 {
-  float speed = 0.000001f * dt.count();
+  float speed = 0.00001f * dt.count();
   switch (event.type) {
     case SDL_JOYAXISMOTION: {
       speed *= 0.0025f;
@@ -45,27 +47,61 @@ Camera::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
       }
       switch (event.key.keysym.sym) {
         case SDLK_w: {
+          origin_ += speed * glm::vec3(glm::eulerAngleXY(pitch_, -yaw_) * glm::vec4(0, 0, -1, 0));
         } break;
         case SDLK_s: {
+          origin_ += speed * glm::vec3(glm::eulerAngleXY(pitch_, -yaw_) * glm::vec4(0, 0, 1, 0));
         } break;
         case SDLK_e:
+          origin_.y += speed;
           break;
         case SDLK_q:
+          origin_.y -= speed;
           break;
         case SDLK_a: {
+          origin_ += speed * glm::vec3(glm::eulerAngleXY(pitch_, -yaw_) * glm::vec4(-1, 0, 0, 0));
         } break;
         case SDLK_d: {
+          origin_ += speed * glm::vec3(glm::eulerAngleXY(pitch_, -yaw_) * glm::vec4(1, 0, 0, 0));
         } break;
         case SDLK_UP:
+          pitch_ += speed;
           break;
         case SDLK_DOWN:
+          pitch_ -= speed;
           break;
 
         case SDLK_LEFT: {
+          yaw_ -= speed;
         } break;
         case SDLK_RIGHT: {
+          yaw_ += speed;
         } break;
       }
     }
   }
+}
+
+float
+Camera::fov_y() const
+{
+  return fov_y_;
+}
+
+glm::vec3
+Camera::origin() const
+{
+  return origin_;
+}
+
+glm::mat4
+Camera::perspective(float aspect) const
+{
+  return glm::perspective(fov_y_, aspect, near_, far_);
+}
+
+glm::mat4
+Camera::matrix() const
+{
+  return glm::transpose(glm::translate(glm::eulerAngleXY(-pitch_, yaw_), -origin_));
 }

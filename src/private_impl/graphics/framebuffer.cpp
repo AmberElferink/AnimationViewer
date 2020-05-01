@@ -36,7 +36,8 @@ Framebuffer::default_framebuffer()
   return std::unique_ptr<Framebuffer>(new Framebuffer(0, 0));
 }
 
-Framebuffer::Framebuffer(uint32_t native_handle, uint8_t size)
+Framebuffer::Framebuffer(uint32_t native_handle,
+                         uint8_t size)
   : native_handle(native_handle)
   , size(size)
 {}

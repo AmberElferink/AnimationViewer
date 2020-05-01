@@ -1,6 +1,6 @@
 #include "pipeline.h"
 
-#include "private_impl/pipelines/pipeline_raster_opengl.h"
+#include "pipelines/pipeline_raster_opengl.h"
 
 using AnimationViewer::Graphics::Pipeline;
 
