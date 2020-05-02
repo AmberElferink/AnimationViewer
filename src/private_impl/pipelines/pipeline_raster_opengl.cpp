@@ -28,7 +28,7 @@ PipelineRasterOpenGL::get_native_handle() const
 }
 
 std::unique_ptr<Pipeline>
-PipelineRasterOpenGL::create(const PipelineCreateInfo& info)
+PipelineRasterOpenGL::create(const CreateInfo& info)
 {
   int32_t is_compiled = 0;
   char compile_log[0x400];

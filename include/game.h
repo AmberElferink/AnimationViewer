@@ -30,7 +30,11 @@ public:
   bool main_loop();
 
 protected:
-  Game(const std::string& app_name, uint16_t width, uint16_t height);
+  Game(std::unique_ptr<Window>&& window,
+       std::unique_ptr<Input>&& input,
+       std::unique_ptr<Renderer>&& renderer,
+       std::unique_ptr<Ui>&& ui,
+       std::unique_ptr<Scene>&& scene);
 
 private:
   void take_timestamp();

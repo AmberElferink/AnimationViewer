@@ -13,7 +13,7 @@ public:
   uint32_t get_native_handle() const override;
 
   /// A factory function in the impl class allows for an error to return null
-  static std::unique_ptr<Pipeline> create(const PipelineCreateInfo& info);
+  static std::unique_ptr<Pipeline> create(const CreateInfo& info);
 
 private:
   const uint32_t program;

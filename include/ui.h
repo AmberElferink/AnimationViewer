@@ -13,14 +13,15 @@ union SDL_Event;
 namespace AnimationViewer {
 namespace Graphics {
 class Renderer;
-}
+} // namespace Graphics
+class Scene;
 
 class Ui
 {
 public:
   static std::unique_ptr<Ui> create(SDL_Window* const window);
   virtual ~Ui();
-  void run(Graphics::Renderer& renderer,
+  void run(Scene& scene,
            const std::vector<std::pair<std::string, float>>& renderer_metrics,
            std::chrono::microseconds& dt);
   void draw() const;

@@ -11,6 +11,7 @@ typedef void* SDL_GLContext;
 
 namespace AnimationViewer {
 class Scene;
+class Ui;
 } // namespace AnimationViewer
 
 namespace AnimationViewer::Graphics {
@@ -20,7 +21,8 @@ class Renderer
 {
 public:
   virtual ~Renderer();
-  void render_scene(const Scene& scene);
+  void render(const Scene& scene,
+              const Ui& ui, const std::chrono::microseconds& dt);
   void set_back_buffer_size(uint16_t width, uint16_t height);
 
   /// Factory function from which all types of renderers can be created

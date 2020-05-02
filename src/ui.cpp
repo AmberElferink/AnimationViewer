@@ -51,7 +51,7 @@ Ui::~Ui()
 }
 
 void
-Ui::run(Graphics::Renderer& renderer,
+Ui::run(Scene& scene,
         const std::vector<std::pair<std::string, float>>& renderer_metrics,
         std::chrono::microseconds& dt)
 {

@@ -4,7 +4,6 @@
 #include <string_view>
 
 #include <SDL_video.h>
-
 #include <glad/glad.h>
 
 #if __EMSCRIPTEN__
@@ -13,6 +12,8 @@
 #endif
 
 #include "pipeline.h"
+#include "scene.h"
+#include "ui.h"
 
 #include "private_impl/graphics/framebuffer.h"
 #include "private_impl/graphics/indexed_mesh.h"
@@ -102,7 +103,9 @@ Renderer::~Renderer()
 }
 
 void
-Renderer::render_scene(const Scene& scene)
+Renderer::render(const Scene& scene,
+                 const Ui& ui,
+                 const std::chrono::microseconds& dt)
 {
   static const glm::vec4 clear_color = { 1.0f, 1.0f, 0.0f, 1.0f };
   if (!context_) {
@@ -111,8 +114,10 @@ Renderer::render_scene(const Scene& scene)
 
   // auto& cam = scene.get_camera();
 
+  // clearing screen
+  back_buffer_->clear({ clear_color });
 
-
+  ui.draw();
   glFinish();
 }
 

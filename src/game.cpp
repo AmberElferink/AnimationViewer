@@ -16,17 +16,45 @@ using namespace AnimationViewer::Graphics;
 std::unique_ptr<Game>
 Game::create(const std::string& app_name, uint16_t width, uint16_t height)
 {
-  return std::unique_ptr<Game>(new Game(app_name, width, height));
+  auto window = Window::create(app_name, width, height);
+  if (!window) {
+    return nullptr;
+  }
+  auto input = Input::create();
+  if (!input) {
+    return nullptr;
+  }
+  auto renderer = Renderer::create(window->get_native_handle());
+  if (!renderer) {
+    return nullptr;
+  }
+  auto ui = Ui::create(window->get_native_handle());
+  if (!ui) {
+    return nullptr;
+  }
+  auto scene = Scene::create();
+  if (!scene) {
+    return nullptr;
+  }
+
+  return std::unique_ptr<Game>(new Game(std::move(window),
+                                        std::move(input),
+                                        std::move(renderer),
+                                        std::move(ui),
+                                        std::move(scene)));
 }
 
-Game::Game(const std::string& app_name, uint16_t width, uint16_t height)
-{
-  window_ = Window::create(app_name, width, height);
-  input_ = Input::create();
-  renderer_ = Renderer::create(window_->get_native_handle());
-  ui_ = Ui::create(window_->get_native_handle());
-  scene_ = Scene::create();
-}
+Game::Game(std::unique_ptr<Window>&& window,
+           std::unique_ptr<Input>&& input,
+           std::unique_ptr<Renderer>&& renderer,
+           std::unique_ptr<Ui>&& ui,
+           std::unique_ptr<Scene>&& scene)
+  : window_(std::move(window))
+  , input_(std::move(input))
+  , renderer_(std::move(renderer))
+  , ui_(std::move(ui))
+  , scene_(std::move(scene))
+{}
 
 Game::~Game() = default;
 
@@ -50,9 +78,8 @@ Game::main_loop()
   window_->get_dimensions(width, height);
   renderer_->set_back_buffer_size(width, height);
   input_->run(*ui_, *scene_, delta_time);
-  ui_->run(*renderer_, renderer_metrics_, delta_time);
-  renderer_->render_scene(*scene_);
-  ui_->draw();
+  ui_->run(*scene_, renderer_metrics_, delta_time);
+  renderer_->render(*scene_, *ui_, delta_time);
   window_->swap();
 
   return !input_->should_quit();
