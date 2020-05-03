@@ -8,7 +8,8 @@
 #include <examples/imgui_impl_opengl3.h>
 #include <examples/imgui_impl_sdl.h>
 
-#include "renderer.h"
+#include "resource.h"
+#include "scene.h"
 
 using namespace AnimationViewer;
 
@@ -40,7 +41,9 @@ Ui::create(SDL_Window* const window)
 Ui::Ui(SDL_Window* const window, ImGuiContext* const context)
   : window_(window)
   , context_(context)
-  , show_stats_(false)
+  , show_statistics_(false)
+  , show_assets_(false)
+  , show_scene_(false)
 {}
 
 Ui::~Ui()
@@ -61,10 +64,24 @@ Ui::run(Scene& scene,
   ImGui::NewFrame();
 
   ImGui::BeginMainMenuBar();
+  if (ImGui::BeginMenu("View")) {
+    ImGui::MenuItem("Statistics", nullptr, &show_statistics_);
+    ImGui::MenuItem("Assets", nullptr, &show_assets_);
+    ImGui::MenuItem("Scene", nullptr, &show_scene_);
+    ImGui::EndMenu();
+  }
+  char frame_timing[32];
+  snprintf(frame_timing,
+           sizeof(frame_timing),
+           "%.2f fps %.2f ms",
+           1e6f / dt.count(),
+           dt.count() / 1000.0f);
+  ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::CalcTextSize(frame_timing).x);
+  ImGui::Text("%5.2f fps %2.2f ms", 1e6f / dt.count(), dt.count() / 1000.0f);
   std::map<std::string, std::vector<float>> graphs_map;
   for (auto [format, value] : renderer_metrics) {
     if (format.find("[GRAPH") != std::string::npos) {
-      if (show_stats_) {
+      if (show_statistics_) {
         auto title_start = format.find("] ");
         if (title_start != std::string::npos) {
           auto name = format.substr(title_start + 2);
@@ -81,8 +98,8 @@ Ui::run(Scene& scene,
   }
   ImGui::EndMainMenuBar();
 
-  if (!graphs_map.empty()) {
-    if (ImGui::Begin("Stats"), &show_stats_) {
+  if (show_statistics_ && ImGui::Begin("Statistics", &show_statistics_)) {
+    if (!graphs_map.empty()) {
       for (auto [title, values] : graphs_map) {
         ImGui::PlotHistogram(title.c_str(), values.data(), (int)values.size());
       }
@@ -90,11 +107,19 @@ Ui::run(Scene& scene,
     ImGui::End();
   }
 
-  if (ImGui::Begin("Configuration ")) {
-    ImGui::Text("%.2f fps %.2f ms", 1e6f / dt.count(), dt.count() / 1000.0f);
-    ImGui::Checkbox("Show stats", &show_stats_);
+  if (show_assets_ && ImGui::Begin("Assets", &show_assets_)) {
+    ImGui::End();
   }
-  ImGui::End();
+
+  if (show_scene_ && ImGui::Begin("Scene", &show_scene_)) {
+    if (ImGui::TreeNode("Meshes")) {
+      for (const auto& id : scene.meshes()) {
+        ImGui::BulletText("%s", resource_manager.mesh_cache().handle(id)->name.c_str());
+      }
+      ImGui::TreePop();
+    }
+    ImGui::End();
+  }
 
   // Rendering
   ImGui::Render();

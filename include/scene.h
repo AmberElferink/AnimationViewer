@@ -4,6 +4,8 @@
 #include <memory>
 #include <vector>
 
+#include <entt/core/hashed_string.hpp>
+
 #include "camera.h"
 
 union SDL_Event;
@@ -17,11 +19,13 @@ public:
 
   /// Update scene based on SDL events
   void process_event(const SDL_Event& event, std::chrono::microseconds& dt);
+  void add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_position);
 
   /// A scene can have any number of cameras including zero
   /// This returns the camera selected for rendering or a default camera
   /// if there are no cameras in the scene.
   const Camera& active_camera() const;
+  const std::vector<entt::hashed_string>& meshes() const;
 
 protected:
   Scene();
@@ -32,5 +36,6 @@ private:
   Camera default_camera_;
   uint32_t active_camera_;
   std::vector<Camera> cameras_;
+  std::vector<entt::hashed_string> meshes_;
 };
 } // namespace AnimationViewer

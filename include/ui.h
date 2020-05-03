@@ -35,6 +35,8 @@ protected:
 private:
   SDL_Window* const window_;
   ImGuiContext* const context_;
-  bool show_stats_;
+  bool show_statistics_;
+  bool show_assets_;
+  bool show_scene_;
 };
 } // namespace AnimationViewer

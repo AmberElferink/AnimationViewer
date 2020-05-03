@@ -115,6 +115,7 @@ endif()
 
 add_subdirectory(3rd_party/glad)
 add_subdirectory(3rd_party/imgui-1.76)
+add_subdirectory(3rd_party/l3d)
 
 target_include_directories(AnimationViewerLib
   PUBLIC
@@ -125,7 +126,7 @@ target_include_directories(AnimationViewerLib
   3rd_party/tinygltf
   # Compiled shaders
   ${CMAKE_CURRENT_BINARY_DIR}/src)
-target_link_libraries(AnimationViewerLib PRIVATE ${LIBRARIES})
+target_link_libraries(AnimationViewerLib PRIVATE ${LIBRARIES} l3d)
 target_compile_definitions(AnimationViewerLib PRIVATE SDL_MAIN_HANDLED)
 if(MSVC)
   target_compile_options(AnimationViewerLib

@@ -24,14 +24,17 @@ class Pipeline;
 class Renderer
 {
 public:
-  virtual ~Renderer();
-  void render(const Scene& scene,
-              const ResourceManager& resource_manager,
-              const Ui& ui, const std::chrono::microseconds& dt);
-  void set_back_buffer_size(uint16_t width, uint16_t height);
-
   /// Factory function from which all types of renderers can be created
   static std::unique_ptr<Renderer> create(SDL_Window* window);
+  virtual ~Renderer();
+
+  void render(const Scene& scene,
+              const ResourceManager& resource_manager,
+              const Ui& ui,
+              const std::chrono::microseconds& dt);
+  void set_back_buffer_size(uint16_t width, uint16_t height);
+  std::unique_ptr<IndexedMesh> upload_mesh(std::vector<float> vertices,
+                                           std::vector<uint16_t> indices);
 
 protected:
   explicit Renderer(SDL_Window* window);

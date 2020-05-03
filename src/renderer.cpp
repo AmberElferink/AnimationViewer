@@ -5,10 +5,7 @@
 
 #include <SDL_video.h>
 #include <glad/glad.h>
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/matrix.hpp>
-
-#include <scene.h>
 
 #if __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -132,11 +129,7 @@ Renderer::render(const Scene& scene,
     mat4 view_matrix = glm::transpose(camera.matrix());
     vec3 direction_to_sun = glm::vec3(0, 1, 0);
     sky_uniform_t sky_uniform{
-      view_matrix,
-      direction_to_sun,
-      camera.fov_y(),
-      width_,
-      height_,
+      view_matrix, direction_to_sun, camera.fov_y(), width_, height_,
     };
     rayleigh_sky_uniform_buffer_->upload(&sky_uniform, sizeof(sky_uniform));
 
@@ -163,11 +156,12 @@ Renderer::render(const Scene& scene,
     ScopedDebugGroup group("Draw Meshes");
     mesh_pipeline_->bind();
     mesh_vertex_uniform_buffer_->bind(0);
-    resource_manager.mesh_cache().each([](MeshResource& res) {
-      assert(res.gpu_resource);
-      res.gpu_resource->bind();
-      res.gpu_resource->draw();
-    });
+    for (const auto& id: scene.meshes()) {
+      const auto& res = resource_manager.mesh_cache().handle(id);
+      assert(res->gpu_resource);
+      res->gpu_resource->bind();
+      res->gpu_resource->draw();
+    }
   }
 
   ui.draw();
@@ -193,6 +187,20 @@ void
 Renderer::create_geometry()
 {
   full_screen_quad_ = IndexedMesh::create_full_screen_quad();
+}
+
+std::unique_ptr<IndexedMesh>
+Renderer::upload_mesh(std::vector<float> vertices, std::vector<uint16_t> indices)
+{
+  const std::vector<IndexedMesh::MeshAttributes> attributes = {
+    IndexedMesh::MeshAttributes{ GL_FLOAT, 3 }, // Position
+    IndexedMesh::MeshAttributes{ GL_FLOAT, 3 }, // Normal
+  };
+  return IndexedMesh::create(attributes,
+                             vertices.data(),
+                             vertices.size() * sizeof(vertices[0]),
+                             indices.data(),
+                             indices.size());
 }
 
 void

@@ -1,9 +1,12 @@
 #include "input.h"
 
+#include <filesystem>
+
 #include <SDL.h>
 
 #include "camera.h"
 #include "scene.h"
+#include "resource.h"
 #include "ui.h"
 
 using AnimationViewer::Input;
@@ -13,10 +16,85 @@ using AnimationViewer::Ui;
 #include <spnav.h>
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+
+extern "C"
+{
+  void EMSCRIPTEN_KEEPALIVE // Required to be export
+  animation_viewer_ui_load_file_contents(Input* input,
+                                         const char* file_name,
+                                         const uint8_t* contents,
+                                         size_t size)
+  {
+    FILE* file = fopen(file_name, "wb");
+    fwrite(contents, size, size, file);
+    fclose(file);
+    SDL_Event event = {};
+    event.type = SDL_DROPFILE;
+    event.drop.timestamp = SDL_GetTicks();
+    event.drop.file = (char*)SDL_malloc(size);
+    memcpy(event.drop.file, file_name, size);
+    SDL_PushEvent(&event);
+  }
+}
+
+void
+animation_viewer_emscripten_install_drop_handler(Input& input)
+{
+  EM_ASM(
+    {
+      var canvas = document.getElementById('canvas');
+
+      canvas.addEventListener(
+        'dragover', function(ev) {
+          ev.stopPropagation();
+          ev.preventDefault();
+          ev.dataTransfer.dropEffect = 'copy';
+        });
+
+      canvas.addEventListener(
+        'drop', function(ev) {
+          ev.stopPropagation();
+          ev.preventDefault();
+          var files = ev.dataTransfer.files;
+          for (var i = 0, file; file = files[i]; i++) {
+            var reader = new FileReader();
+            reader.onload = (function(f) {
+              var len = lengthBytesUTF8(f.name) + 1;
+              var file_name = stackAlloc(len);
+              stringToUTF8(f.name, file_name, len);
+              return function(ev2)
+              {
+                var file_contents = _malloc(ev2.target.result.byteLength);
+                var heap_bytes =
+                  new Uint8Array(HEAPU8.buffer, file_contents, ev2.target.result.byteLength);
+                heap_bytes.set(new Uint8Array(ev2.target.result));
+                ccall('animation_viewer_ui_load_file_contents',
+                      'v',
+                      'isii',
+                      [ $0, file_name, file_contents, ev2.target.result.byteLength ],
+                      []);
+                _free(file_contents);
+              };
+            })(file);
+            reader.readAsArrayBuffer(file);
+          }
+        });
+    },
+    &input);
+}
+
+#endif
+
 std::unique_ptr<Input>
 Input::create()
 {
-  return std::unique_ptr<Input>(new Input());
+  auto result = std::unique_ptr<Input>(new Input());
+#ifdef EMSCRIPTEN
+  animation_viewer_emscripten_install_drop_handler(*result);
+#endif
+  return result;
 }
 
 Input::Input()
@@ -131,6 +209,19 @@ Input::run(Ui& ui, Scene& scene, ResourceManager& resource_manager, std::chrono:
             break;
         }
         break;
+      case SDL_DROPFILE: {
+        const auto path = std::filesystem::path(event.drop.file);
+        glm::ivec2 mouse_position;
+        SDL_GetMouseState(&mouse_position.x, &mouse_position.y);
+        auto id = resource_manager.load_file(path);
+        if (id.has_value()) {
+          scene.add_mesh(*id, mouse_position);
+        }
+#ifdef __EMSCRIPTEN__
+        // Files are created at runtime in memory, free this memory after load
+        // std::filesystem::remove(path);
+#endif
+      } break;
     }
   }
 }
