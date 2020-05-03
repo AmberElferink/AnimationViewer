@@ -37,7 +37,7 @@ Input::~Input()
 }
 
 void
-Input::run(Ui& ui, Scene& scene, std::chrono::microseconds& dt)
+Input::run(Ui& ui, Scene& scene, ResourceManager& resource_manager, std::chrono::microseconds& dt)
 {
   SDL_Event event;
 

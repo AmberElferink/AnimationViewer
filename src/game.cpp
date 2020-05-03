@@ -2,6 +2,7 @@
 
 #include "input.h"
 #include "renderer.h"
+#include "resource.h"
 #include "scene.h"
 #include "ui.h"
 #include "window.h"
@@ -36,24 +37,31 @@ Game::create(const std::string& app_name, uint16_t width, uint16_t height)
   if (!scene) {
     return nullptr;
   }
+  auto resource_manager = ResourceManager::create();
+  if (!resource_manager) {
+    return nullptr;
+  }
 
   return std::unique_ptr<Game>(new Game(std::move(window),
                                         std::move(input),
                                         std::move(renderer),
                                         std::move(ui),
-                                        std::move(scene)));
+                                        std::move(scene),
+                                        std::move(resource_manager)));
 }
 
 Game::Game(std::unique_ptr<Window>&& window,
            std::unique_ptr<Input>&& input,
            std::unique_ptr<Renderer>&& renderer,
            std::unique_ptr<Ui>&& ui,
-           std::unique_ptr<Scene>&& scene)
+           std::unique_ptr<Scene>&& scene,
+           std::unique_ptr<ResourceManager>&& resource_manager)
   : window_(std::move(window))
   , input_(std::move(input))
   , renderer_(std::move(renderer))
   , ui_(std::move(ui))
   , scene_(std::move(scene))
+  , resource_manager_(std::move(resource_manager))
 {}
 
 Game::~Game() = default;
@@ -77,9 +85,10 @@ Game::main_loop()
   uint16_t width, height;
   window_->get_dimensions(width, height);
   renderer_->set_back_buffer_size(width, height);
-  input_->run(*ui_, *scene_, delta_time);
-  ui_->run(*scene_, renderer_metrics_, delta_time);
-  renderer_->render(*scene_, *ui_, delta_time);
+  input_->run(*ui_, *scene_, *resource_manager_, delta_time);
+  ui_->run(*scene_, *resource_manager_, renderer_metrics_, delta_time);
+  resource_manager_->upload_dirty_buffers(*renderer_);
+  renderer_->render(*scene_, *resource_manager_, *ui_, delta_time);
   window_->swap();
 
   return !input_->should_quit();

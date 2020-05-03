@@ -8,6 +8,7 @@
 
 namespace AnimationViewer {
 class Input;
+class ResourceManager;
 class Scene;
 class Ui;
 class Window;
@@ -34,7 +35,8 @@ protected:
        std::unique_ptr<Input>&& input,
        std::unique_ptr<Renderer>&& renderer,
        std::unique_ptr<Ui>&& ui,
-       std::unique_ptr<Scene>&& scene);
+       std::unique_ptr<Scene>&& scene,
+       std::unique_ptr<ResourceManager>&& resource_manager);
 
 private:
   void take_timestamp();
@@ -44,6 +46,7 @@ private:
   std::unique_ptr<Renderer> renderer_;
   std::unique_ptr<Ui> ui_;
   std::unique_ptr<Scene> scene_;
+  std::unique_ptr<ResourceManager> resource_manager_;
   std::chrono::high_resolution_clock::time_point frame_begin_;
   std::chrono::high_resolution_clock::time_point frame_end_;
   std::vector<std::pair<std::string, float>> renderer_metrics_;

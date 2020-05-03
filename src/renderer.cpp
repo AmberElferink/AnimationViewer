@@ -5,6 +5,8 @@
 
 #include <SDL_video.h>
 #include <glad/glad.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/matrix.hpp>
 
 #include <scene.h>
 
@@ -14,17 +16,21 @@
 #endif
 
 #include "pipeline.h"
+#include "resource.h"
 #include "scene.h"
 #include "ui.h"
 
 #include "private_impl/graphics/buffer.h"
 #include "private_impl/graphics/framebuffer.h"
 #include "private_impl/graphics/indexed_mesh.h"
+#include "private_impl/graphics/scoped_debug_group.h"
 #include "private_impl/graphics/texture.h"
 
 #include "private_impl/graphics/shaders/bridging_header.h"
 
 #include "private_impl/graphics/shaders/full_screen_vert_glsl.h"
+#include "private_impl/graphics/shaders/mesh_frag_glsl.h"
+#include "private_impl/graphics/shaders/mesh_vert_glsl.h"
 #include "private_impl/graphics/shaders/rayleigh_sky_frag_glsl.h"
 
 using namespace AnimationViewer::Graphics;
@@ -112,6 +118,7 @@ Renderer::~Renderer()
 
 void
 Renderer::render(const Scene& scene,
+                 const ResourceManager& resource_manager,
                  const Ui& ui,
                  const std::chrono::microseconds& dt)
 {
@@ -132,6 +139,13 @@ Renderer::render(const Scene& scene,
       height_,
     };
     rayleigh_sky_uniform_buffer_->upload(&sky_uniform, sizeof(sky_uniform));
+
+    mesh_uniform_t mesh_vertex_uniform{
+      camera.perspective(static_cast<float>(width_) / height_),
+      view_matrix,
+      direction_to_sun,
+    };
+    mesh_vertex_uniform_buffer_->upload(&mesh_vertex_uniform, sizeof(mesh_vertex_uniform));
   }
 
   // clearing screen with a color which should never be seen
@@ -143,6 +157,17 @@ Renderer::render(const Scene& scene,
     full_screen_quad_->bind();
     rayleigh_sky_uniform_buffer_->bind(0);
     full_screen_quad_->draw();
+  }
+
+  {
+    ScopedDebugGroup group("Draw Meshes");
+    mesh_pipeline_->bind();
+    mesh_vertex_uniform_buffer_->bind(0);
+    resource_manager.mesh_cache().each([](MeshResource& res) {
+      assert(res.gpu_resource);
+      res.gpu_resource->bind();
+      res.gpu_resource->draw();
+    });
   }
 
   ui.draw();
@@ -186,5 +211,19 @@ Renderer::create_pipeline()
     rayleigh_sky_pipeline_ = Pipeline::create(Pipeline::Type::RasterOpenGL, info);
     rayleigh_sky_uniform_buffer_ = Buffer::create(sizeof(sky_uniform_t));
     rayleigh_sky_uniform_buffer_->set_debug_name("rayleigh_sky_uniform_buffer_");
+  }
+  // Mesh
+  {
+    Pipeline::CreateInfo info{
+      .vertex_shader_binary = mesh_vert_glsl,
+      .vertex_shader_size = sizeof(mesh_vert_glsl) / sizeof(mesh_vert_glsl[0]),
+      .vertex_shader_entry_point = "main",
+      .fragment_shader_binary = mesh_frag_glsl,
+      .fragment_shader_size = sizeof(mesh_frag_glsl) / sizeof(mesh_frag_glsl[0]),
+      .fragment_shader_entry_point = "main",
+    };
+    mesh_pipeline_ = Pipeline::create(Pipeline::Type::RasterOpenGL, info);
+    mesh_vertex_uniform_buffer_ = Buffer::create(sizeof(mesh_uniform_t));
+    mesh_vertex_uniform_buffer_->set_debug_name("mesh_uniform_buffer_");
   }
 }

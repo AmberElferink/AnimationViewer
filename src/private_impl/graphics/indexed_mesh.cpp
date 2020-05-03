@@ -25,6 +25,72 @@ const uint16_t full_screen_quad_indices[6] = { 0, 1, 2, 2, 3, 0 };
 const std::vector<IndexedMesh::MeshAttributes> full_screen_quad_attributes = {
   IndexedMesh::MeshAttributes{ GL_FLOAT, 2 },
 };
+
+// 3 floats for position, 3 floats for normals //, 3 floats for tangent, 2 floats uv
+const float box_vertices[(3 + 3) * 2 * 3 * 6] = {
+  // ,--------------------------------------- x
+  // |      ,-------------------------------- y
+  // |      |      ,------------------------- z
+  // |      |      |     ,------------------- normal x
+  // |      |      |     |      ,------------ normal y
+  // |      |      |     |      |      ,----- normal z
+  // |      |      |     |      |      |
+  -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f, // 0 Front Face
+  0.5f,  -0.5f, 0.5f,  0.0f,  0.0f,  1.0f, // 1
+  0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f, // 2
+
+  0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f, // 3
+  -0.5f, 0.5f,  0.5f,  0.0f,  0.0f,  1.0f, // 4
+  -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f, // 5
+
+  0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, // 6 Back Face
+  0.5f,  -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, // 7
+  -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, // 8
+
+  -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, // 9
+  -0.5f, 0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, // 10
+  0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, // 11
+
+  0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, // 12 Top Face
+  0.5f,  0.5f,  -0.5f, 0.0f,  1.0f,  0.0f, // 13
+  -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f, // 14
+
+  -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f, // 15
+  -0.5f, 0.5f,  0.5f,  0.0f,  1.0f,  0.0f, // 16
+  0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, // 17
+
+  -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f, // 18 Bottom Face
+  0.5f,  -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f, // 19
+  0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f, // 20
+
+  0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f, // 21
+  -0.5f, -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f, // 22
+  -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f, // 23
+
+  -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f, // 24 Left Face
+  -0.5f, 0.5f,  -0.5f, -1.0f, 0.0f,  0.0f, // 25
+  -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f, // 26
+
+  -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f, // 27
+  -0.5f, -0.5f, 0.5f,  -1.0f, 0.0f,  0.0f, // 28
+  -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f, // 29
+
+  0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f, // 30 Right Face
+  0.5f,  0.5f,  -0.5f, 1.0f,  0.0f,  0.0f, // 31
+  0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f, // 32
+
+  0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f, // 33
+  0.5f,  -0.5f, 0.5f,  1.0f,  0.0f,  0.0f, // 34
+  0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f, // 35
+};
+const uint16_t box_indices[36] = { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11,
+                                   12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+                                   24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35 };
+const std::vector<IndexedMesh::MeshAttributes> box_attributes = {
+  IndexedMesh::MeshAttributes{ GL_FLOAT, 3 }, // Position
+  IndexedMesh::MeshAttributes{ GL_FLOAT, 3 }, // Normal
+};
+
 } // namespace
 
 std::unique_ptr<IndexedMesh>
@@ -62,6 +128,18 @@ IndexedMesh::create_full_screen_quad()
   return fullscreen_quad;
 }
 
+std::unique_ptr<IndexedMesh>
+IndexedMesh::create_box()
+{
+  auto box = IndexedMesh::create(box_attributes,
+                                 box_vertices,
+                                 sizeof(box_vertices),
+                                 box_indices,
+                                 sizeof(box_indices) / sizeof(box_indices[0]));
+
+  return box;
+}
+
 IndexedMesh::IndexedMesh(uint32_t vertex_buffer,
                          uint32_t index_buffer,
                          uint32_t vao,
@@ -94,8 +172,11 @@ IndexedMesh::bind() const
   glBindVertexArray(vao);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+
+  uint32_t total_stride = 0;
+  std::vector<uint32_t> offsets;
+  offsets.reserve(attributes.size());
   uint32_t attr_index = 0;
-  uintptr_t attr_offset = 0;
   for (auto& attr : attributes) {
     auto size = attr.count;
     switch (attr.type) {
@@ -107,14 +188,18 @@ IndexedMesh::bind() const
         assert(false);
         return;
     }
-    glEnableVertexAttribArray(attr_index);
-    glVertexAttribPointer(attr_index,
-                          attr.count,
-                          attr.type,
-                          GL_FALSE,
-                          size,
-                          reinterpret_cast<const void*>(attr_offset));
+    offsets.push_back(total_stride);
+    total_stride += size;
     attr_index++;
-    attr_offset += size;
+  }
+
+  for (uint32_t i = 0; i < offsets.size(); ++i) {
+    glVertexAttribPointer(i,
+                          attributes[i].count,
+                          attributes[i].type,
+                          GL_FALSE,
+                          total_stride,
+                          reinterpret_cast<const void*>(offsets[i]));
+    glEnableVertexAttribArray(i);
   }
 }

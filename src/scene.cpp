@@ -13,7 +13,7 @@ Scene::create()
 }
 
 Scene::Scene()
-  : default_camera_(glm::vec3{ 0.0f, 0.0f, 0.0f }, 0, 0, glm::radians(80.0f))
+  : default_camera_(glm::vec3{ 0.0f, 1.0f, 3.0f }, 0, 0, glm::radians(80.0f))
 {}
 Scene::~Scene() = default;
 

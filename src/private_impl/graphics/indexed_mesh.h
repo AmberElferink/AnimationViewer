@@ -25,6 +25,7 @@ struct IndexedMesh
                                              const uint16_t* indices,
                                              uint16_t index_count);
   static std::unique_ptr<IndexedMesh> create_full_screen_quad();
+  static std::unique_ptr<IndexedMesh> create_box();
 
   virtual ~IndexedMesh();
   void draw() const;

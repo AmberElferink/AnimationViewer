@@ -77,6 +77,13 @@ if(EMSCRIPTEN)
   fetchcontent_makeavailable(glm)
 
   fetchcontent_declare(
+    entt
+    URL https://github.com/skypjack/entt/archive/v3.3.2.tar.gz
+    URL_HASH SHA256=150cd89b45bffbcd7643d39bbce282e8fa38307bb5ed25567b79e337376ba1c7
+  )
+  fetchcontent_makeavailable(entt)
+
+  fetchcontent_declare(
     spirv-cross
     URL https://github.com/KhronosGroup/SPIRV-Cross/archive/2019-11-01.tar.gz
     URL_HASH MD5=841d5055ef364a4dea7b06378336212a
@@ -89,13 +96,14 @@ if(EMSCRIPTEN)
     COMPILE_FLAGS "-s USE_PTHREADS=1"
     LINK_FLAGS "-s USE_PTHREADS=1")
   target_compile_definitions(spirv-cross-glsl INTERFACE SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS)
-  set(LIBRARIES glm glad imgui spirv-cross-glsl)
+  set(LIBRARIES glm EnTT glad imgui spirv-cross-glsl)
 else()
   find_package(glm REQUIRED)
+  find_package(EnTT REQUIRED)
   find_package(SDL2 REQUIRED)
   find_package(spirv_cross_core REQUIRED)
   find_package(spirv_cross_glsl REQUIRED)
-  set(LIBRARIES SDL2::SDL2 glad imgui spirv-cross-core spirv-cross-glsl glm)
+  set(LIBRARIES SDL2::SDL2 glad imgui spirv-cross-core spirv-cross-glsl glm EnTT::EnTT)
 endif()
 
 # 3d connexion 3d mouse

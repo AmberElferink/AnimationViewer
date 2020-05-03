@@ -52,6 +52,7 @@ Ui::~Ui()
 
 void
 Ui::run(Scene& scene,
+        ResourceManager& resource_manager,
         const std::vector<std::pair<std::string, float>>& renderer_metrics,
         std::chrono::microseconds& dt)
 {

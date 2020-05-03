@@ -10,6 +10,7 @@ struct SDL_Window;
 typedef void* SDL_GLContext;
 
 namespace AnimationViewer {
+class ResourceManager;
 class Scene;
 class Ui;
 } // namespace AnimationViewer
@@ -25,6 +26,7 @@ class Renderer
 public:
   virtual ~Renderer();
   void render(const Scene& scene,
+              const ResourceManager& resource_manager,
               const Ui& ui, const std::chrono::microseconds& dt);
   void set_back_buffer_size(uint16_t width, uint16_t height);
 
@@ -46,5 +48,7 @@ private:
   std::unique_ptr<IndexedMesh> full_screen_quad_;
   std::unique_ptr<Buffer> rayleigh_sky_uniform_buffer_;
   std::unique_ptr<Pipeline> rayleigh_sky_pipeline_;
+  std::unique_ptr<Buffer> mesh_vertex_uniform_buffer_;
+  std::unique_ptr<Pipeline> mesh_pipeline_;
 };
 } // namespace AnimationViewer::Graphics
