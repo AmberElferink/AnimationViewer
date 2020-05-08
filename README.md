@@ -14,7 +14,7 @@ Make sure to set the global environment variable `VCPKG_DEFAULT_TRIPLET=x64-wind
 
 Install the dependencies
 ```
-vcpkg install entt sdl2 glslang spirv-cross glm --triplets x64-windows
+vcpkg install --triplet x64-windows entt sdl2 glslang spirv-cross glm
 ```
 
 When generating the cmake project use the vcpkg toolchain file.
