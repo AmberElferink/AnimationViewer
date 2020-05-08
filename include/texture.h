@@ -1,8 +1,10 @@
 #pragma once
 
-#include <glm/vec3.hpp>
 #include <memory>
+#include <string>
 #include <vector>
+
+#include <glm/vec3.hpp>
 
 namespace tinygltf {
 struct Image;

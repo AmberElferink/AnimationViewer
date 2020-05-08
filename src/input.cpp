@@ -9,8 +9,7 @@
 #include "resource.h"
 #include "ui.h"
 
-using AnimationViewer::Input;
-using AnimationViewer::Ui;
+using namespace AnimationViewer;
 
 #if USE_SPNAV
 #include <spnav.h>

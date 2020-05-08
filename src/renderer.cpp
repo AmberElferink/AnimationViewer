@@ -30,6 +30,7 @@
 #include "private_impl/graphics/shaders/mesh_vert_glsl.h"
 #include "private_impl/graphics/shaders/rayleigh_sky_frag_glsl.h"
 
+using namespace AnimationViewer;
 using namespace AnimationViewer::Graphics;
 
 namespace {
