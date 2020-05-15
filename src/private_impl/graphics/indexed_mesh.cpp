@@ -183,6 +183,15 @@ IndexedMesh::bind() const
       case GL_FLOAT:
         size *= sizeof(float);
         break;
+      case GL_UNSIGNED_INT:
+        size *= sizeof(uint32_t);
+        break;
+      case GL_UNSIGNED_SHORT:
+        size *= sizeof(uint16_t);
+        break;
+      case GL_UNSIGNED_BYTE:
+        size *= sizeof(uint8_t);
+        break;
       default:
         // printf("unsupported type\n");
         assert(false);

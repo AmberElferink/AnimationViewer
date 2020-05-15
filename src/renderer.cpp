@@ -191,7 +191,7 @@ Renderer::create_geometry()
 }
 
 std::unique_ptr<IndexedMesh>
-Renderer::upload_mesh(std::vector<float> vertices, std::vector<uint16_t> indices)
+Renderer::upload_mesh(const std::vector<vertex_t>& vertices, const std::vector<uint16_t>& indices)
 {
   const std::vector<IndexedMesh::MeshAttributes> attributes = {
     IndexedMesh::MeshAttributes{ GL_FLOAT, 3 }, // Position

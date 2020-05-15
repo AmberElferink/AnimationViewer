@@ -40,14 +40,12 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
   {
     auto mesh = std::make_shared<MeshResource>();
     mesh->name = name;
-    mesh->vertices.reserve(l3d.GetVertices().size() * 6);
+    mesh->vertices.reserve(l3d.GetVertices().size());
     for (const auto& vertex : l3d.GetVertices()) {
-      mesh->vertices.push_back(vertex.position.x);
-      mesh->vertices.push_back(vertex.position.y);
-      mesh->vertices.push_back(vertex.position.z);
-      mesh->vertices.push_back(vertex.normal.x);
-      mesh->vertices.push_back(vertex.normal.y);
-      mesh->vertices.push_back(vertex.normal.z);
+      mesh->vertices.push_back({
+        { vertex.position.x, vertex.position.y, vertex.position.z },
+        { vertex.normal.x, vertex.normal.y, vertex.normal.z },
+      });
     }
     mesh->indices = l3d.GetIndices();
 

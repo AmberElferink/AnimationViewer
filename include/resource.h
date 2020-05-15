@@ -6,7 +6,7 @@
 #include <vector>
 
 #include <entt/entt.hpp>
-#include <glm/fwd.hpp>
+#include <glm/vec3.hpp>
 
 namespace AnimationViewer {
 namespace Graphics {
@@ -14,10 +14,16 @@ struct IndexedMesh;
 class Renderer;
 } // namespace Graphics
 
+
+struct vertex_t {
+  glm::vec3 position;
+  glm::vec3 normal;
+};
+
 struct MeshResource {
   MeshResource() = default;
   std::string name;
-  std::vector<float> vertices;
+  std::vector<vertex_t> vertices;
   std::vector<uint16_t> indices;
   std::unique_ptr<Graphics::IndexedMesh> gpu_resource;
 };
