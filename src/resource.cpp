@@ -22,13 +22,9 @@ detect_file_type(const std::filesystem::path& path)
   auto ext = path.extension();
   // Check for L3D
   if (ext == ".l3d" || ext == ".L3D" || ext == ".l3D" || ext == ".L3d") {
-    #ifdef _MSC_VER
-    FILE* file = _wfopen(path.c_str(), L"rb");
-#else
-    FILE* file = fopen(path.c_str(), "rb");
-#endif
+    FILE* file = fopen(path.string().c_str(), "rb");
     char magic_number[3];
-    fread(magic_number, sizeof(magic_number), sizeof(magic_number), file);
+    fread(magic_number, sizeof(magic_number), 1, file);
     if (magic_number[0] == 'L' && magic_number[1] == '3' && magic_number[2] == 'D') {
       return FileType::L3D;
     }
