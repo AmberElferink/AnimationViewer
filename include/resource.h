@@ -7,6 +7,8 @@
 
 #include <entt/entt.hpp>
 #include <glm/vec3.hpp>
+#include <glm/matrix.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace AnimationViewer {
 namespace Graphics {
@@ -18,12 +20,22 @@ class Renderer;
 struct vertex_t {
   glm::vec3 position;
   glm::vec3 normal;
+  glm::uint16 bone_id;
+};
+
+struct bone_t {
+    glm::uint32 parent;
+    glm::uint32 firstChild;
+    glm::uint32 rightSibling;
+    glm::vec3 position;
+    glm::mat3 orientation;
 };
 
 struct MeshResource {
   MeshResource() = default;
   std::string name;
   std::vector<vertex_t> vertices;
+  std::vector<bone_t> bones;
   std::vector<uint16_t> indices;
   std::unique_ptr<Graphics::IndexedMesh> gpu_resource;
 };

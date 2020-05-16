@@ -40,13 +40,56 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
   {
     auto mesh = std::make_shared<MeshResource>();
     mesh->name = name;
+    //for (const auto& vertex : l3d.GetVertices()) {
+    //  mesh->vertices.push_back({
+    //    { vertex.position.x, vertex.position.y, vertex.position.z },
+    //    { vertex.normal.x, vertex.normal.y, vertex.normal.z },
+    //  });
+    //}
+
+    // Add all bones
+    mesh->bones.reserve(l3d.GetBones().size());
+    for (const auto& bone : l3d.GetBones()) {
+        glm::mat3 orient = glm::make_mat3(bone.orientation); // If weird shit happens, transpose
+
+      mesh->bones.push_back({
+          bone.parent,
+          bone.firstChild,
+          bone.rightSibling,
+          { bone.position.x, bone.position.y, bone.position.z },
+          orient,
+          });
+    }
+
+
+    //l3d.GetVertexGroupSpan();
+    auto bla = l3d.GetLookUpTableData();
+    int vertices = 0;
+    for (const auto& td : l3d.GetLookUpTableData()) {
+        vertices += td.vertexCount;
+    }
+
+    // Add all vertices
+    int vertex_index = 0, vertex_group_index = 0;
+
     mesh->vertices.reserve(l3d.GetVertices().size());
-    for (const auto& vertex : l3d.GetVertices()) {
-      mesh->vertices.push_back({
+    for (int i = 0; i < l3d.GetVertices().size(); i++)
+    {
+        const auto& vertex = l3d.GetVertices()[i];
+        if (vertex_index >= l3d.GetLookUpTableData()[vertex_group_index].vertexCount) {
+            vertex_group_index++;
+            vertex_index = 0;
+        }
+
+        mesh->vertices.push_back({
         { vertex.position.x, vertex.position.y, vertex.position.z },
         { vertex.normal.x, vertex.normal.y, vertex.normal.z },
-      });
+        l3d.GetLookUpTableData()[vertex_group_index].boneIndex,
+            });
+
+        vertex_index++;
     }
+        
     mesh->indices = l3d.GetIndices();
 
     return mesh;
