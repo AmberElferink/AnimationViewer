@@ -87,6 +87,9 @@ Game::main_loop()
   renderer_->set_back_buffer_size(width, height);
   input_->run(*ui_, *scene_, *resource_manager_, delta_time);
   ui_->run(*scene_, *resource_manager_, renderer_metrics_, delta_time);
+
+  scene_->run(*resource_manager_);
+
   resource_manager_->upload_dirty_buffers(*renderer_);
   renderer_->render(*scene_, *resource_manager_, *ui_, delta_time);
   window_->swap();

@@ -1,4 +1,5 @@
 #include "scene.h"
+#include "resource.h"
 
 #include <string>
 
@@ -27,10 +28,32 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
   }
 }
 
+
+//TODO: Make an animation manager to put the code below. 
+// It should have an update function with timestamps as well, called from game.cpp
+// It should have an accessible ResourceManager (the one below does not work), find another way.
 void
-Scene::add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_position)
+Scene::add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_position, AnimationViewer::ResourceManager& resource_manager)
 {
-  meshes_.ids.push_back(id);
+  meshes_entity_.ids.push_back(id);
+
+  const auto& mesh = resource_manager.mesh_cache().handle(id);
+
+  for (int i = 0; i < mesh->bones.size(); i++)
+  {
+      const bone_t& bone = mesh->bones[i];
+      glm::mat4 trans = glm::translate(glm::mat4(), { bone.position.x, bone.position.y, bone.position.z });
+      glm::mat4 rot = glm::mat4(bone.orientation);
+      glm::mat4 trans_rot = rot * trans;
+      // mesh entity data add
+      meshes_entity_.bone_trans_rots[i] = trans_rot;
+  }
+}
+
+void
+Scene::run(AnimationViewer::ResourceManager& resource_manager)
+{
+    //calc_bone_trans_rots(resource_manager);
 }
 
 const Camera&
@@ -44,5 +67,5 @@ Scene::active_camera() const
 
 const MeshEntityData& Scene::meshes() const
 {
-  return meshes_;                                                                                                   
+  return meshes_entity_;                                                                                                   
 }
