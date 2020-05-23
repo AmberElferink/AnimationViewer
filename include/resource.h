@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <array>
 
 #include <entt/entt.hpp>
 #include <glm/vec3.hpp>
@@ -64,5 +65,6 @@ protected:
 
 private:
   entt::cache<MeshResource> mesh_cache_;
+ 
 };
 } // namespace AnimationViewer

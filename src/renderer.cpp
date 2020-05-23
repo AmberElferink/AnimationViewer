@@ -129,16 +129,22 @@ Renderer::render(const Scene& scene,
   {
     mat4 view_matrix = glm::transpose(camera.matrix());
     vec3 direction_to_sun = glm::vec3(0, 1, 0);
+    const std::vector<glm::mat4> &bone_trans_rots = scene.meshes().bone_trans_rots;
+
+
     sky_uniform_t sky_uniform{
       view_matrix, direction_to_sun, camera.fov_y(), width_, height_,
     };
     rayleigh_sky_uniform_buffer_->upload(&sky_uniform, sizeof(sky_uniform));
-
+    
     mesh_uniform_t mesh_vertex_uniform{
       camera.perspective(static_cast<float>(width_) / height_),
       view_matrix,
       direction_to_sun,
+      //bone_trans_rots filled with memcpy
     };
+    memcpy(mesh_vertex_uniform.bone_trans_rots, bone_trans_rots.data(), bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
+
     mesh_vertex_uniform_buffer_->upload(&mesh_vertex_uniform, sizeof(mesh_vertex_uniform));
   }
 
@@ -157,7 +163,8 @@ Renderer::render(const Scene& scene,
     ScopedDebugGroup group("Draw Meshes");
     mesh_pipeline_->bind();
     mesh_vertex_uniform_buffer_->bind(0);
-    for (const auto& id: scene.meshes()) {
+    for (const auto& id: scene.meshes().ids) {
+       //Mesh
       const auto& res = resource_manager.mesh_cache().handle(id);
       assert(res->gpu_resource);
       res->gpu_resource->bind();

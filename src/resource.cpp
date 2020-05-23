@@ -53,9 +53,16 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
     // Hierarchy translation/rotation
 
     // Add all bones
+
+
     mesh->bones.reserve(l3d.GetBones().size());
+    int boneNr = 0;
     for (const auto& bone : l3d.GetBones()) {
       glm::mat3 orient = glm::make_mat3(bone.orientation); // If weird shit happens, transpose
+
+      glm::mat4 trans = glm::translate(glm::mat4(), { bone.position.x, bone.position.y, bone.position.z });
+      glm::mat4 rot = glm::mat4(orient);
+      glm::mat4 trans_rot = rot * trans;
 
       mesh->bones.push_back({
           bone.parent,
@@ -64,6 +71,7 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
           { bone.position.x, bone.position.y, bone.position.z },
           orient,
           });
+
     }
 
 

@@ -113,7 +113,7 @@ Ui::run(Scene& scene,
 
   if (show_scene_ && ImGui::Begin("Scene", &show_scene_)) {
     if (ImGui::TreeNode("Meshes")) {
-      for (const auto& id : scene.meshes()) {
+      for (const auto& id : scene.meshes().ids) {
         ImGui::BulletText("%s", resource_manager.mesh_cache().handle(id)->name.c_str());
       }
       ImGui::TreePop();

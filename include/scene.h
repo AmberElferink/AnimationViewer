@@ -11,6 +11,12 @@
 union SDL_Event;
 
 namespace AnimationViewer {
+struct MeshEntityData
+{
+    std::vector <entt::hashed_string> ids;
+    std::vector<glm::mat4> bone_trans_rots;
+};
+
 class Scene
 {
 public:
@@ -25,17 +31,18 @@ public:
   /// This returns the camera selected for rendering or a default camera
   /// if there are no cameras in the scene.
   const Camera& active_camera() const;
-  const std::vector<entt::hashed_string>& meshes() const;
+  const MeshEntityData& Scene::meshes() const;
 
 protected:
   Scene();
 
 private:
+
   /// Default read-only camera used only if there is no camera in the scene
   /// selected
   Camera default_camera_;
   uint32_t active_camera_;
   std::vector<Camera> cameras_;
-  std::vector<entt::hashed_string> meshes_;
+  MeshEntityData meshes_;
 };
 } // namespace AnimationViewer

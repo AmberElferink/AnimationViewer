@@ -30,7 +30,7 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
 void
 Scene::add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_position)
 {
-  meshes_.push_back(id);
+  meshes_.ids.push_back(id);
 }
 
 const Camera&
@@ -42,8 +42,7 @@ Scene::active_camera() const
   return cameras_[active_camera_];
 }
 
-const std::vector<entt::hashed_string>&
-Scene::meshes() const
+const MeshEntityData& Scene::meshes() const
 {
-  return meshes_;
+  return meshes_;                                                                                                   
 }
