@@ -198,7 +198,6 @@ Renderer::upload_mesh(const std::vector<vertex_t>& vertices, const std::vector<u
     IndexedMesh::MeshAttributes{ GL_FLOAT, 3 }, // Normal
     IndexedMesh::MeshAttributes{ GL_UNSIGNED_INT, 1 }, // Bone Id
     IndexedMesh::MeshAttributes{ GL_FLOAT, 3 }, // Bone Position
-    IndexedMesh::MeshAttributes{ GL_FLOAT_MAT4, 1 }, // Bone Translation and Rotation
   };
   return IndexedMesh::create(attributes,
                              vertices.data(),

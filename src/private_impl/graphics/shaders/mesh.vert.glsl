@@ -12,13 +12,12 @@ layout(location = 0) in vec3 vertex_position;
 layout(location = 1) in vec3 vertex_normal;
 layout(location = 2) in uint vertex_bone_id;
 layout(location = 3) in vec3 vertex_bone_position;
-layout(location = 4) in mat4 vertex_bone_trans_rot;
 
 layout(location = 0) out vec3 fragment_position;
 layout(location = 1) out vec3 fragment_normal;
 
 void main() {
-  mat4 view_projection_matrix = uniform_block.data.projection_matrix * uniform_block.data.view_matrix * vertex_bone_position;
+    mat4 view_projection_matrix = uniform_block.data.projection_matrix * uniform_block.data.view_matrix;// *vertex_bone_position;
   // Augment vertex_position with 1 in the w parameter indicating that it is a
   // point and can be translated.
   // Transform the position of the vertex with the inverse camera view to move
