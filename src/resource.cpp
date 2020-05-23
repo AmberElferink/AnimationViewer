@@ -47,10 +47,19 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
     //  });
     //}
 
+    // TO DO:
+    // Convert to uniform buffer
+    // Fix matrix 4 error
+    // Hierarchy translation/rotation
+
     // Add all bones
     mesh->bones.reserve(l3d.GetBones().size());
     for (const auto& bone : l3d.GetBones()) {
-        glm::mat3 orient = glm::make_mat3(bone.orientation); // If weird shit happens, transpose
+      glm::mat3 orient = glm::make_mat3(bone.orientation); // If weird shit happens, transpose
+      glm::mat4 trans = glm::translate(glm::mat4(), { bone.position.x, bone.position.y, bone.position.z });
+
+      glm::mat4 rot = glm::mat4(orient);
+      glm::mat4 trans_rot = rot * trans;
 
       mesh->bones.push_back({
           bone.parent,
@@ -58,6 +67,7 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
           bone.rightSibling,
           { bone.position.x, bone.position.y, bone.position.z },
           orient,
+          trans_rot,
           });
     }
 
@@ -81,10 +91,16 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
             vertex_index = 0;
         }
 
+        glm::uint32 bone_index = l3d.GetLookUpTableData()[vertex_group_index].boneIndex;
+        glm::vec3 bone_position = { l3d.GetBones()[bone_index].position.x, l3d.GetBones()[bone_index].position.y, l3d.GetBones()[bone_index].position.z };
+        glm::mat4 bone_trans_rot = mesh->bones[bone_index].trans_rot;
+
         mesh->vertices.push_back({
         { vertex.position.x, vertex.position.y, vertex.position.z },
         { vertex.normal.x, vertex.normal.y, vertex.normal.z },
-        l3d.GetLookUpTableData()[vertex_group_index].boneIndex,
+        bone_index,
+        bone_position,
+        bone_trans_rot,
             });
 
         vertex_index++;

@@ -20,7 +20,9 @@ class Renderer;
 struct vertex_t {
   glm::vec3 position;
   glm::vec3 normal;
-  glm::uint16 bone_id;
+  glm::uint32 bone_id;
+  glm::vec3 bone_pos;
+  glm::mat4 bone_trans_rot;
 };
 
 struct bone_t {
@@ -29,6 +31,7 @@ struct bone_t {
     glm::uint32 rightSibling;
     glm::vec3 position;
     glm::mat3 orientation;
+    glm::mat4 trans_rot;
 };
 
 struct MeshResource {

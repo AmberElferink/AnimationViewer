@@ -54,6 +54,8 @@ struct alignas(16) mesh_uniform_t
   mat4 projection_matrix;
   mat4 view_matrix;
   vec3 direction_to_sun;
+  mat4 bone_trans_rot[256];
+  // storage buffer
 };
 
 #endif // BRIDGING_HEADER_H
