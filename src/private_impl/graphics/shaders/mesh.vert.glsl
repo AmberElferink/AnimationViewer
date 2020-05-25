@@ -10,7 +10,7 @@ layout(binding = 0, std140) uniform uniform_vertex_block_t {
 
 layout(location = 0) in vec3 vertex_position;
 layout(location = 1) in vec3 vertex_normal;
-layout(location = 2) in uint vertex_bone_id;
+layout(location = 2) in float vertex_bone_id; //uint won't upload correctly
 
 layout(location = 0) out vec3 fragment_position;
 layout(location = 1) out vec3 fragment_normal;
@@ -25,8 +25,9 @@ void main() {
   // infinite R3 to Normalized Device coordinates. A box from -1 to 1 in three
   // axis where the xy coordinates are perpective projected (parallel lines
   // converge at a point) and the z gets fed into the depth-buffer.
-  vec4 trans_rot_vertex_pos = uniform_block.data.bone_trans_rots[vertex_bone_id] * vec4(vertex_position, 1);
+  vec4 trans_rot_vertex_pos = uniform_block.data.bone_trans_rots[uint(vertex_bone_id)] * vec4(vertex_position, 1);
   gl_Position = view_projection_matrix * trans_rot_vertex_pos;
+  gl_Position.x = vertex_bone_id;
   // We also store the position unaffected by perpective to do lighting calculations
   fragment_position = (uniform_block.data.view_matrix * trans_rot_vertex_pos).xyz;
   // Simularly, the normal which is a point, gets augmented with 0 in the w

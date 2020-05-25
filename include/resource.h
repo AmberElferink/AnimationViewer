@@ -22,7 +22,6 @@ struct vertex_t {
   glm::vec3 position;
   glm::vec3 normal;
   glm::uint32 bone_id;
-  glm::vec3 bone_pos;
 };
 
 struct bone_t {

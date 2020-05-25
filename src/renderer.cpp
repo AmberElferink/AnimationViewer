@@ -114,6 +114,7 @@ Renderer::~Renderer()
   SDL_GL_DeleteContext(context_);
 }
 
+
 void
 Renderer::render(const Scene& scene,
                  const ResourceManager& resource_manager,
@@ -140,7 +141,7 @@ Renderer::render(const Scene& scene,
     mesh_uniform_t mesh_vertex_uniform{
       camera.perspective(static_cast<float>(width_) / height_),
       view_matrix,
-      direction_to_sun,
+      glm::vec4(direction_to_sun, 0)
       //bone_trans_rots filled with memcpy
     };
     memcpy(mesh_vertex_uniform.bone_trans_rots, bone_trans_rots.data(), bone_trans_rots.size() * sizeof(bone_trans_rots[0]));

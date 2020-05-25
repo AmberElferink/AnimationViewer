@@ -98,7 +98,6 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
         { vertex.position.x, vertex.position.y, vertex.position.z },
         { vertex.normal.x, vertex.normal.y, vertex.normal.z },
         bone_index,
-        bone_position,
             });
 
         vertex_index++;

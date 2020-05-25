@@ -28,6 +28,9 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
   }
 }
 
+#include <iostream>
+#include <glm/gtx/string_cast.hpp>
+
 
 //TODO: Make an animation manager to put the code below. 
 // It should have an update function with timestamps as well, called from game.cpp
@@ -41,13 +44,13 @@ void Scene::add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_spa
   for (int i = 0; i < mesh->bones.size(); i++)
   {
       const bone_t& bone = mesh->bones[i];
-      glm::mat4 trans = glm::translate(glm::mat4(), { bone.position.x, bone.position.y, bone.position.z });
+      glm::mat4 trans = glm::translate(glm::mat4(1.0f), { bone.position.x, bone.position.y, bone.position.z });
       glm::mat4 rot = glm::mat4(bone.orientation);
       glm::mat4 trans_rot = rot * trans;
+
       // mesh entity data add
-      meshes_entity_.bone_trans_rots.push_back(rot);
+      meshes_entity_.bone_trans_rots.push_back(trans_rot);
   }
-  int w = 0;
 }
 
 void

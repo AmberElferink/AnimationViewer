@@ -9,6 +9,7 @@
 #define out
 #define inout
 #define REF &
+using glm::vec4;
 using glm::vec3;
 using glm::mat4;
 
@@ -53,7 +54,7 @@ struct alignas(16) mesh_uniform_t
 {
   mat4 projection_matrix;
   mat4 view_matrix;
-  vec3 direction_to_sun;
+  vec4 direction_to_sun;
   mat4 bone_trans_rots[256];
   // storage buffer
 };
