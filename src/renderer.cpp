@@ -204,8 +204,7 @@ Renderer::upload_mesh(const std::vector<vertex_t>& vertices, const std::vector<u
   const std::vector<IndexedMesh::MeshAttributes> attributes = {
     IndexedMesh::MeshAttributes{ GL_FLOAT, 3 }, // Position
     IndexedMesh::MeshAttributes{ GL_FLOAT, 3 }, // Normal
-    IndexedMesh::MeshAttributes{ GL_UNSIGNED_INT, 1 }, // Bone Id
-    IndexedMesh::MeshAttributes{ GL_FLOAT, 3 }, // Bone Position
+    IndexedMesh::MeshAttributes{ GL_FLOAT, 1 }, // Bone Id
   };
   return IndexedMesh::create(attributes,
                              vertices.data(),

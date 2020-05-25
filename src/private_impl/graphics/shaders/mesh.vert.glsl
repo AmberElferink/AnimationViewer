@@ -27,7 +27,6 @@ void main() {
   // converge at a point) and the z gets fed into the depth-buffer.
   vec4 trans_rot_vertex_pos = uniform_block.data.bone_trans_rots[uint(vertex_bone_id)] * vec4(vertex_position, 1);
   gl_Position = view_projection_matrix * trans_rot_vertex_pos;
-  gl_Position.x = vertex_bone_id;
   // We also store the position unaffected by perpective to do lighting calculations
   fragment_position = (uniform_block.data.view_matrix * trans_rot_vertex_pos).xyz;
   // Simularly, the normal which is a point, gets augmented with 0 in the w

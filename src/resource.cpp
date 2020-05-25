@@ -97,7 +97,7 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
         mesh->vertices.push_back({
         { vertex.position.x, vertex.position.y, vertex.position.z },
         { vertex.normal.x, vertex.normal.y, vertex.normal.z },
-        bone_index,
+        (float)bone_index,
             });
 
         vertex_index++;

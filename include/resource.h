@@ -21,7 +21,7 @@ class Renderer;
 struct vertex_t {
   glm::vec3 position;
   glm::vec3 normal;
-  glm::uint32 bone_id;
+  float bone_id;
 };
 
 struct bone_t {
