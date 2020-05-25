@@ -11,10 +11,17 @@
 union SDL_Event;
 
 namespace AnimationViewer {
+    class ResourceManager;
+
 struct MeshEntityData
 {
     std::vector <entt::hashed_string> ids;
     std::vector<glm::mat4> bone_trans_rots;
+
+    MeshEntityData()
+    {
+
+    }
 };
 
 class Scene
@@ -25,7 +32,7 @@ public:
 
   /// Update scene based on SDL events
   void process_event(const SDL_Event& event, std::chrono::microseconds& dt);
-  void add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_position, ResourceManager& resource_manager);
+  void add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_position, AnimationViewer::ResourceManager& resource_manager);
 
   void run(ResourceManager &resource_manager);
 

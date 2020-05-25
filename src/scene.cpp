@@ -32,8 +32,7 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
 //TODO: Make an animation manager to put the code below. 
 // It should have an update function with timestamps as well, called from game.cpp
 // It should have an accessible ResourceManager (the one below does not work), find another way.
-void
-Scene::add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_position, ResourceManager& resource_manager)
+void Scene::add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_position, ResourceManager& resource_manager)
 {
   meshes_entity_.ids.push_back(id);
 
@@ -46,8 +45,9 @@ Scene::add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_po
       glm::mat4 rot = glm::mat4(bone.orientation);
       glm::mat4 trans_rot = rot * trans;
       // mesh entity data add
-      meshes_entity_.bone_trans_rots[i] = trans_rot;
+      meshes_entity_.bone_trans_rots.push_back(rot);
   }
+  int w = 0;
 }
 
 void
