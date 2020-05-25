@@ -33,7 +33,7 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
 // It should have an update function with timestamps as well, called from game.cpp
 // It should have an accessible ResourceManager (the one below does not work), find another way.
 void
-Scene::add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_position, AnimationViewer::ResourceManager& resource_manager)
+Scene::add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_position, ResourceManager& resource_manager)
 {
   meshes_entity_.ids.push_back(id);
 
@@ -51,7 +51,7 @@ Scene::add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_po
 }
 
 void
-Scene::run(AnimationViewer::ResourceManager& resource_manager)
+Scene::run(ResourceManager& resource_manager)
 {
     //calc_bone_trans_rots(resource_manager);
 }

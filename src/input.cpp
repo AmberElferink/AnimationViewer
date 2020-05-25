@@ -214,7 +214,7 @@ Input::run(Ui& ui, Scene& scene, ResourceManager& resource_manager, std::chrono:
         SDL_GetMouseState(&mouse_position.x, &mouse_position.y);
         auto id = resource_manager.load_file(path);
         if (id.has_value()) {
-          scene.add_mesh(*id, mouse_position);
+          scene.add_mesh(*id, mouse_position, resource_manager);
         }
 #ifdef __EMSCRIPTEN__
         // Files are created at runtime in memory, free this memory after load

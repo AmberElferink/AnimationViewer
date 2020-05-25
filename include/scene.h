@@ -25,9 +25,9 @@ public:
 
   /// Update scene based on SDL events
   void process_event(const SDL_Event& event, std::chrono::microseconds& dt);
-  void add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_position, AnimationViewer::ResourceManager& resource_manager);
+  void add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_position, ResourceManager& resource_manager);
 
-  void run(AnimationViewer::ResourceManager &resource_manager);
+  void run(ResourceManager &resource_manager);
 
   /// A scene can have any number of cameras including zero
   /// This returns the camera selected for rendering or a default camera
