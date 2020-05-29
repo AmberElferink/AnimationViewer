@@ -17,7 +17,7 @@ class ResourceManager;
 namespace Components {
 struct Mesh
 {
-  entt::hashed_string id;
+  ENTT_ID_TYPE id;
 };
 struct Armature
 {
@@ -25,7 +25,7 @@ struct Armature
 };
 struct Animation
 {
-  entt::hashed_string id;
+  ENTT_ID_TYPE id;
   uint32_t dummy; // TODO: replace me with things an animation needs, such as current animation time
 };
 } // namespace Components
@@ -38,7 +38,7 @@ public:
 
   /// Update scene based on SDL events
   void process_event(const SDL_Event& event, std::chrono::microseconds& dt);
-  void add_mesh(const entt::hashed_string& id,
+  void add_mesh(ENTT_ID_TYPE id,
                 const glm::ivec2& screen_space_position,
                 AnimationViewer::ResourceManager& resource_manager);
 
@@ -48,6 +48,7 @@ public:
   /// This returns the camera selected for rendering or a default camera
   /// if there are no cameras in the scene.
   const Camera& active_camera() const;
+  entt::registry& registry();
   const entt::registry& registry() const;
 
 protected:

@@ -35,7 +35,7 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
 // It should have an update function with timestamps as well, called from game.cpp
 // It should have an accessible ResourceManager (the one below does not work), find another way.
 void
-Scene::add_mesh(const entt::hashed_string& id,
+Scene::add_mesh(ENTT_ID_TYPE id,
                 const glm::ivec2& screen_space_position,
                 ResourceManager& resource_manager)
 {
@@ -90,6 +90,12 @@ Scene::active_camera() const
     return default_camera_;
   }
   return cameras_[active_camera_];
+}
+
+entt::registry&
+Scene::registry()
+{
+  return registry_;
 }
 
 const entt::registry&

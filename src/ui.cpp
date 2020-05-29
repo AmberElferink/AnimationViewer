@@ -140,15 +140,39 @@ Ui::run(Scene& scene,
     ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, height), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Assets", &show_assets_)) {
       ImGui::Columns(2);
-      ImGui::Text("Meshes");
-      resource_manager.mesh_cache().each([&resource_manager](const auto id) {
-        ImGui::BulletText("%s", resource_manager.mesh_cache().handle(id)->name.c_str());
-      });
+      if (ImGui::TreeNodeEx("Meshes", ImGuiTreeNodeFlags_DefaultOpen)) {
+        resource_manager.mesh_cache().each([&resource_manager](const auto id) {
+          ImGui::TreeNodeEx(resource_manager.mesh_cache().handle(id)->name.c_str(),
+                            ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+          if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Drag and drop on scene to add to scene.");
+          }
+          if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+            ImGui::SetDragDropPayload("DND_MESH", &id, sizeof(id));
+            ImGui::Text("Mesh: %s",
+                        resource_manager.mesh_cache().handle(id)->name.c_str());
+            ImGui::EndDragDropSource();
+          }
+        });
+        ImGui::TreePop();
+      }
       ImGui::NextColumn();
-      ImGui::Text("Animations");
-      resource_manager.animation_cache().each([&resource_manager](const auto id) {
-        ImGui::BulletText("%s", resource_manager.animation_cache().handle(id)->name.c_str());
-      });
+      if (ImGui::TreeNodeEx("Animations", ImGuiTreeNodeFlags_DefaultOpen)) {
+        resource_manager.animation_cache().each([&resource_manager](const auto id) {
+          ImGui::TreeNodeEx(resource_manager.animation_cache().handle(id)->name.c_str(),
+                            ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+          if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Drag and drop on entity to add animation component.");
+          }
+          if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+            ImGui::SetDragDropPayload("DND_ANIMATION", &id, sizeof(id));
+            ImGui::Text("Animation: %s",
+                        resource_manager.animation_cache().handle(id)->name.c_str());
+            ImGui::EndDragDropSource();
+          }
+        });
+        ImGui::TreePop();
+      }
       ImGui::Columns(1);
       ImGui::End();
     }
@@ -163,12 +187,35 @@ Ui::run(Scene& scene,
     ImGui::SetNextWindowSize(ImVec2(viewport->Size.x * 0.2f, viewport->Size.y - dock_padding),
                              ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Scene", &show_scene_)) {
+      // Allow dropping meshes into scene
+      if (ImGui::BeginDragDropTarget()) {
+        auto payload = ImGui::AcceptDragDropPayload("DND_MESH");
+        if (payload != nullptr) {
+          ENTT_ID_TYPE id;
+          assert(payload->DataSize == sizeof(id));
+          memcpy(&id, payload->Data, sizeof(id));
+          scene.add_mesh(id, { -1, -1 }, resource_manager);
+        }
+        ImGui::EndDragDropTarget();
+      }
+
       char entity_name[256];
       uint32_t i = 0;
-      scene.registry().each([&i, &entity_name](const entt::entity& entity) {
+      scene.registry().each([&i, &scene, &entity_name](const entt::entity& entity) {
         snprintf(entity_name, sizeof(entity_name), "Entity %d", ++i);
         if (ImGui::Selectable(entity_name, selected_entity == entity)) {
           selected_entity = entity;
+        }
+        // Allow dropping assets into component if an entity is selected
+        if (ImGui::BeginDragDropTarget()) {
+          auto payload = ImGui::AcceptDragDropPayload("DND_ANIMATION");
+          if (payload != nullptr) {
+            ENTT_ID_TYPE id;
+            assert(payload->DataSize == sizeof(id));
+            memcpy(&id, payload->Data, sizeof(id));
+            scene.registry().emplace<Components::Animation>(entity, id, /*dummy=*/0);
+          }
+          ImGui::EndDragDropTarget();
         }
       });
       scene_window_hovered_ = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows);
@@ -185,6 +232,18 @@ Ui::run(Scene& scene,
     if (ImGui::Begin("Components", &show_components_)) {
       if (selected_entity.has_value()) {
         auto& registry = scene.registry();
+        // Allow dropping assets into component if an entity is selected
+        if (ImGui::BeginDragDropTarget()) {
+          auto payload = ImGui::AcceptDragDropPayload("DND_ANIMATION");
+          if (payload != nullptr) {
+            ENTT_ID_TYPE id;
+            assert(payload->DataSize == sizeof(id));
+            memcpy(&id, payload->Data, sizeof(id));
+            registry.emplace<Components::Animation>(*selected_entity, id, /*dummy=*/0);
+          }
+          ImGui::EndDragDropTarget();
+        }
+
         if (registry.has<Components::Mesh>(*selected_entity)) {
           if (ImGui::TreeNode("Mesh Component")) {
             auto mesh = registry.get<Components::Mesh>(*selected_entity);
@@ -236,8 +295,6 @@ Ui::run(Scene& scene,
       ImGui::End();
     }
   }
-
-  ImGui::ShowDemoWindow();
 
   // Rendering
   ImGui::Render();
