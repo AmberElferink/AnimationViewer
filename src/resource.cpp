@@ -84,7 +84,7 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
             vertex_index = 0;
         }
 
-        glm::uint32 bone_index = l3d.GetLookUpTableData()[vertex_group_index].boneIndex;
+        uint32_t bone_index = l3d.GetLookUpTableData()[vertex_group_index].boneIndex;
 
         mesh->vertices.push_back({
         { vertex.position.x, vertex.position.y, vertex.position.z },

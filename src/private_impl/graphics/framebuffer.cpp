@@ -50,12 +50,15 @@ Framebuffer::~Framebuffer()
 }
 
 void
-Framebuffer::clear(const std::vector<glm::vec4>& color) const
+Framebuffer::clear(const std::vector<glm::vec4>& color, const std::vector<float>& depth) const
 {
   assert(color.size() == size || native_handle == 0);
   bind();
   for (uint8_t i = 0; i < color.size(); ++i) {
     glClearBufferfv(GL_COLOR, i, reinterpret_cast<const GLfloat*>(&color[i]));
+  }
+  for (uint8_t i = 0; i < depth.size(); ++i) {
+    glClearBufferfv(GL_DEPTH, i, reinterpret_cast<const GLfloat*>(&depth[i]));
   }
 }
 

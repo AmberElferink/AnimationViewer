@@ -8,7 +8,10 @@ class PipelineRasterOpenGL : public Pipeline
 public:
   /// A factory function in the impl class allows for an error to return null
   static std::unique_ptr<Pipeline> create(const CreateInfo& info);
-  explicit PipelineRasterOpenGL(uint32_t program);
+  PipelineRasterOpenGL(uint32_t program,
+                       uint32_t winding_order,
+                       bool depth_write,
+                       std::optional<uint32_t> depth_test);
   ~PipelineRasterOpenGL() override;
 
   void set_uniform(uint8_t location, UniformType type, uint32_t count, const void* value) override;
@@ -18,5 +21,8 @@ public:
 
 private:
   const uint32_t program_;
+  const uint32_t winding_order_;
+  const bool depth_write_;
+  const std::optional<uint32_t> depth_test_;
 };
 } // namespace AnimationViewer::Graphics

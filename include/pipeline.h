@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace AnimationViewer::Graphics {
@@ -18,6 +19,22 @@ public:
   {
     RasterOpenGL,
   };
+  enum class TriangleWindingOrder
+  {
+    Clockwise,
+    CounterClockwise,
+  };
+  enum class DepthTest
+  {
+    Never,
+    Always,
+    Less,
+    LessOrEqual,
+    Greater,
+    GreaterOrEqual,
+    Equal,
+    NotEqual,
+  };
   enum class UniformType
   {
     Float,
@@ -31,6 +48,9 @@ public:
     const uint32_t* fragment_shader_binary;
     uint32_t fragment_shader_size;
     std::string fragment_shader_entry_point;
+    TriangleWindingOrder winding_order;
+    bool depth_write;
+    std::optional<DepthTest> depth_test;
   };
   /// Factory function from which all types of pipelines can be created
   static std::unique_ptr<Pipeline> create(Type type, const CreateInfo& info);

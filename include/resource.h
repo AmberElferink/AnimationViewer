@@ -25,9 +25,9 @@ struct vertex_t {
 };
 
 struct bone_t {
-    glm::uint32 parent;
-    glm::uint32 firstChild;
-    glm::uint32 rightSibling;
+    uint32_t parent;
+    uint32_t firstChild;
+    uint32_t rightSibling;
     glm::vec3 position;
     glm::mat3 orientation;
 };

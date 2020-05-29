@@ -9,6 +9,45 @@ using namespace AnimationViewer::Graphics;
 std::unique_ptr<Pipeline>
 PipelineRasterOpenGL::create(const CreateInfo& info)
 {
+  // Bind states for compilation
+  std::optional<uint32_t> depth_test;
+  if (info.depth_test.has_value()) {
+    switch (info.depth_test.value()) {
+    case DepthTest::Never:
+      depth_test = GL_NEVER;
+      break;
+    case DepthTest::Always:
+      depth_test = GL_ALWAYS;
+      break;
+    case DepthTest::Less:
+      depth_test = GL_LESS;
+      break;
+    case DepthTest::LessOrEqual:
+      depth_test = GL_LEQUAL;
+      break;
+    case DepthTest::Greater:
+      depth_test = GL_GREATER;
+      break;
+    case DepthTest::GreaterOrEqual:
+      depth_test = GL_GEQUAL;
+      break;
+    case DepthTest::Equal:
+      depth_test = GL_EQUAL;
+      break;
+    case DepthTest::NotEqual:
+      depth_test = GL_NOTEQUAL;
+      break;
+    default:
+      assert(false);
+      break;
+    }
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(*depth_test);
+  }
+  else {
+    glDisable(GL_DEPTH_TEST);
+  }
+
   int32_t is_compiled = 0;
   char compile_log[0x400];
 
@@ -71,11 +110,29 @@ PipelineRasterOpenGL::create(const CreateInfo& info)
     return nullptr;
   }
 
-  return std::make_unique<PipelineRasterOpenGL>(program);
+  uint32_t winding_order;
+  switch (info.winding_order) {
+    case TriangleWindingOrder::Clockwise:
+      winding_order = GL_CW;
+      break;
+    case TriangleWindingOrder::CounterClockwise:
+      winding_order = GL_CCW;
+      break;
+    default:
+      assert(false);
+  }
+
+  return std::make_unique<PipelineRasterOpenGL>(program, winding_order, info.depth_write, depth_test);
 }
 
-PipelineRasterOpenGL::PipelineRasterOpenGL(uint32_t program)
+PipelineRasterOpenGL::PipelineRasterOpenGL(uint32_t program,
+                                           uint32_t winding_order,
+                                           bool depth_write,
+                                           std::optional<uint32_t> depth_test)
   : program_(program)
+  , winding_order_(winding_order)
+  , depth_write_(depth_write)
+  , depth_test_(depth_test)
 {}
 
 PipelineRasterOpenGL::~PipelineRasterOpenGL()
@@ -108,7 +165,14 @@ PipelineRasterOpenGL::set_uniform(uint8_t location,
 void
 PipelineRasterOpenGL::bind()
 {
-  glFrontFace(GL_CW);
+  glFrontFace(winding_order_);
+  glDepthMask(depth_write_);
+  if (depth_test_.has_value()) {
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(*depth_test_);
+  } else {
+    glDisable(GL_DEPTH_TEST);
+  }
   glUseProgram(program_);
 }
 

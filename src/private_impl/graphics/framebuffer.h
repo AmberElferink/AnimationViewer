@@ -17,7 +17,7 @@ struct Framebuffer
   virtual ~Framebuffer();
 
   void bind() const;
-  void clear(const std::vector<glm::vec4>& color) const;
+  void clear(const std::vector<glm::vec4>& color, const std::vector<float>& depth) const;
 
 private:
   Framebuffer(uint32_t native_handle, uint8_t size);

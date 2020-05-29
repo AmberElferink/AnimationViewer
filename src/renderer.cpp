@@ -150,7 +150,7 @@ Renderer::render(const Scene& scene,
   }
 
   // clearing screen with a color which should never be seen
-  back_buffer_->clear({ clear_color });
+  back_buffer_->clear({ clear_color }, {1.0f});
 
   {
     ScopedDebugGroup group("Rayleigh Sky in Screen Space");
@@ -225,6 +225,8 @@ Renderer::create_pipeline()
       .fragment_shader_binary = rayleigh_sky_frag_glsl,
       .fragment_shader_size = sizeof(rayleigh_sky_frag_glsl) / sizeof(rayleigh_sky_frag_glsl[0]),
       .fragment_shader_entry_point = "main",
+      .winding_order = Pipeline::TriangleWindingOrder::CounterClockwise,
+      .depth_write = false,
     };
     rayleigh_sky_pipeline_ = Pipeline::create(Pipeline::Type::RasterOpenGL, info);
     rayleigh_sky_uniform_buffer_ = Buffer::create(sizeof(sky_uniform_t));
@@ -239,6 +241,9 @@ Renderer::create_pipeline()
       .fragment_shader_binary = mesh_frag_glsl,
       .fragment_shader_size = sizeof(mesh_frag_glsl) / sizeof(mesh_frag_glsl[0]),
       .fragment_shader_entry_point = "main",
+      .winding_order = Pipeline::TriangleWindingOrder::CounterClockwise,
+      .depth_write = true,
+      .depth_test = Pipeline::DepthTest::Less,
     };
     mesh_pipeline_ = Pipeline::create(Pipeline::Type::RasterOpenGL, info);
     mesh_vertex_uniform_buffer_ = Buffer::create(sizeof(mesh_uniform_t));
