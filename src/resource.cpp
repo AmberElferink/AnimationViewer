@@ -40,20 +40,6 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
   {
     auto mesh = std::make_shared<MeshResource>();
     mesh->name = name;
-    //for (const auto& vertex : l3d.GetVertices()) {
-    //  mesh->vertices.push_back({
-    //    { vertex.position.x, vertex.position.y, vertex.position.z },
-    //    { vertex.normal.x, vertex.normal.y, vertex.normal.z },
-    //  });
-    //}
-
-    // TO DO:
-    // Convert to uniform buffer
-    // Fix matrix 4 error
-    // Hierarchy translation/rotation
-
-    // Add all bones
-
 
     mesh->bones.reserve(l3d.GetBones().size());
     int boneNr = 0;
@@ -67,8 +53,6 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
           { bone.position.x, bone.position.y, bone.position.z },
           orient,
           });
-
-   
     }
 
 
