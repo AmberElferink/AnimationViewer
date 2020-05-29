@@ -59,6 +59,7 @@ Ui::Ui(SDL_Window* const window, ImGuiContext* const context)
   , show_statistics_(false)
   , show_assets_(true)
   , show_scene_(true)
+  , show_components_(true)
 {}
 
 Ui::~Ui()
@@ -85,6 +86,7 @@ Ui::run(Scene& scene,
     ImGui::MenuItem("Statistics", nullptr, &show_statistics_);
     ImGui::MenuItem("Assets", nullptr, &show_assets_);
     ImGui::MenuItem("Scene", nullptr, &show_scene_);
+    ImGui::MenuItem("Components", nullptr, &show_components_);
     ImGui::EndMenu();
   }
   char frame_timing[32];
@@ -143,6 +145,8 @@ Ui::run(Scene& scene,
     }
   }
 
+  static std::optional<entt::entity> selected_entity;
+
   if (show_scene_) {
     ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + title_bar_height),
                             ImGuiCond_FirstUseEver);
@@ -151,27 +155,78 @@ Ui::run(Scene& scene,
     if (ImGui::Begin("Scene", &show_scene_)) {
       char entity_name[256];
       uint32_t i = 0;
-      auto& registry = scene.registry();
-      registry.each([&resource_manager, &registry, &i, &entity_name](const entt::entity& entity) {
+      scene.registry().each([&i, &entity_name](const entt::entity& entity) {
         snprintf(entity_name, sizeof(entity_name), "Entity %d", ++i);
-        if (ImGui::TreeNode(entity_name)) {
-          if (registry.has<Components::Mesh>(entity)) {
-            auto mesh = registry.get<Components::Mesh>(entity);
-            ImGui::BulletText("Mesh: %s",
-                              resource_manager.mesh_cache().handle(mesh.id)->name.c_str());
-          }
-          if (registry.has<Components::Animation>(entity)) {
-            auto animation = registry.get<Components::Animation>(entity);
-            ImGui::BulletText(
-              "Animation: %s",
-              resource_manager.animation_cache().handle(animation.id)->name.c_str());
-          }
-          ImGui::TreePop();
+        if (ImGui::Selectable(entity_name, selected_entity == entity)) {
+          selected_entity = entity;
         }
       });
       ImGui::End();
     }
   }
+
+  if (show_components_) {
+    ImGui::SetNextWindowPos(
+      ImVec2(viewport->Pos.x + viewport->Size.x * 0.8f, viewport->Pos.y + title_bar_height),
+      ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(viewport->Size.x * 0.2f, viewport->Size.y - dock_padding),
+                             ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Components", &show_components_)) {
+      if (selected_entity.has_value()) {
+        auto& registry = scene.registry();
+        if (registry.has<Components::Mesh>(*selected_entity)) {
+          if (ImGui::TreeNode("Mesh Component")) {
+            auto mesh = registry.get<Components::Mesh>(*selected_entity);
+            ImGui::Text("Name: %s", resource_manager.mesh_cache().handle(mesh.id)->name.c_str());
+            ImGui::TreePop();
+          }
+        }
+        if (registry.has<Components::Armature>(*selected_entity)) {
+          if (ImGui::TreeNode("Armature Component")) {
+            auto armature = registry.get<Components::Armature>(*selected_entity);
+            char matrix_name[256];
+            uint32_t i = 0;
+            for (auto& joint : armature.joints) {
+              ImGui::Text("Joint %d", i);
+              snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 0", i);
+              ImGui::InputFloat4(matrix_name,
+                                 glm::value_ptr(glm::transpose(joint)[0]),
+                                 "%.3f",
+                                 ImGuiInputTextFlags_ReadOnly);
+              snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 1", i);
+              ImGui::InputFloat4(matrix_name,
+                                 glm::value_ptr(glm::transpose(joint)[1]),
+                                 "%.3f",
+                                 ImGuiInputTextFlags_ReadOnly);
+              snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 2", i);
+              ImGui::InputFloat4(matrix_name,
+                                 glm::value_ptr(glm::transpose(joint)[2]),
+                                 "%.3f",
+                                 ImGuiInputTextFlags_ReadOnly);
+              snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 3", i);
+              ImGui::InputFloat4(matrix_name,
+                                 glm::value_ptr(glm::transpose(joint)[3]),
+                                 "%.3f",
+                                 ImGuiInputTextFlags_ReadOnly);
+              i++;
+            }
+            ImGui::TreePop();
+          }
+        }
+        if (registry.has<Components::Animation>(*selected_entity)) {
+          if (ImGui::TreeNode("Animation Component")) {
+            auto animation = registry.get<Components::Animation>(*selected_entity);
+            ImGui::Text("Name: %s",
+                        resource_manager.animation_cache().handle(animation.id)->name.c_str());
+            ImGui::TreePop();
+          }
+        }
+      }
+      ImGui::End();
+    }
+  }
+
+  ImGui::ShowDemoWindow();
 
   // Rendering
   ImGui::Render();

@@ -38,5 +38,6 @@ private:
   bool show_statistics_;
   bool show_assets_;
   bool show_scene_;
+  bool show_components_;
 };
 } // namespace AnimationViewer
