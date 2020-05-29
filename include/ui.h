@@ -28,6 +28,8 @@ public:
            std::chrono::microseconds& dt);
   void draw() const;
   bool process_event(const SDL_Event& event);
+  bool has_mouse() const;
+  bool mouse_over_scene_window() const;
 
 protected:
   Ui(SDL_Window* const window, ImGuiContext* const context);
@@ -39,5 +41,6 @@ private:
   bool show_assets_;
   bool show_scene_;
   bool show_components_;
+  bool scene_window_hovered_;
 };
 } // namespace AnimationViewer

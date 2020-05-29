@@ -60,6 +60,7 @@ Ui::Ui(SDL_Window* const window, ImGuiContext* const context)
   , show_assets_(true)
   , show_scene_(true)
   , show_components_(true)
+  , scene_window_hovered_(false)
 {}
 
 Ui::~Ui()
@@ -155,6 +156,7 @@ Ui::run(Scene& scene,
 
   static std::optional<entt::entity> selected_entity;
 
+  scene_window_hovered_ = false;
   if (show_scene_) {
     ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + title_bar_height),
                             ImGuiCond_FirstUseEver);
@@ -169,6 +171,7 @@ Ui::run(Scene& scene,
           selected_entity = entity;
         }
       });
+      scene_window_hovered_ = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows);
       ImGui::End();
     }
   }
@@ -262,4 +265,17 @@ Ui::process_event(const SDL_Event& event)
     return false;
   }
   return true;
+}
+
+bool
+Ui::has_mouse() const
+{
+  auto& io = ImGui::GetIO();
+  return io.WantCaptureMouse;
+}
+
+bool
+Ui::mouse_over_scene_window() const
+{
+  return scene_window_hovered_;
 }
