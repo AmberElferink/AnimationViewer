@@ -127,7 +127,7 @@ target_include_directories(AnimationViewerLib
   3rd_party/tinygltf
   # Compiled shaders
   ${CMAKE_CURRENT_BINARY_DIR}/src)
-target_link_libraries(AnimationViewerLib PRIVATE ${LIBRARIES} l3d)
+target_link_libraries(AnimationViewerLib PRIVATE ${LIBRARIES} l3d anm)
 target_compile_definitions(AnimationViewerLib PRIVATE SDL_MAIN_HANDLED)
 if(MSVC)
   target_compile_options(AnimationViewerLib

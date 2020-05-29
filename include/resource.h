@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <tuple>
 #include <vector>
 
 #include <entt/entt.hpp>
@@ -55,6 +56,12 @@ struct Animation
 class ResourceManager
 {
 public:
+  enum Type
+  {
+    Mesh = 1 << 0,
+    Animation = 1 << 1,
+  };
+
   static std::unique_ptr<ResourceManager> create();
   virtual ~ResourceManager();
 
@@ -64,7 +71,7 @@ public:
   /// Load file from path and detect type before loading as mesh or animation
   ///
   /// @path is the path of the file to load
-  std::optional<entt::hashed_string> load_file(const std::filesystem::path& path);
+  std::optional<std::pair<entt::hashed_string, Type>> load_file(const std::filesystem::path& path);
 
   const entt::cache<Resource::Mesh>& mesh_cache() const;
   const entt::cache<Resource::Animation>& animation_cache() const;
@@ -74,6 +81,7 @@ protected:
                   entt::cache<Resource::Animation>&& animation_cache);
 
   std::optional<entt::hashed_string> load_l3d_file(const std::filesystem::path& path);
+  std::optional<entt::hashed_string> load_anm_file(const std::filesystem::path& path);
 
 private:
   entt::cache<Resource::Mesh> mesh_cache_;

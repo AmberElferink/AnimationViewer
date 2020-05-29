@@ -1,5 +1,6 @@
 #include "resource.h"
 
+#include <ANMFile.h>
 #include <L3DFile.h>
 
 #include "renderer.h"
@@ -11,8 +12,10 @@ using namespace AnimationViewer;
 namespace {
 enum class FileType
 {
-  // Lionhead Studio Mesh
+  /// Lionhead Studio Mesh
   L3D,
+  /// Lionhead Studio Animation
+  ANM,
   Unknown
 };
 
@@ -29,11 +32,17 @@ detect_file_type(const std::filesystem::path& path)
       return FileType::L3D;
     }
   }
+  // Check for ANM
+  if (ext == ".anm" || ext == ".Anm" || ext == ".ANm" || ext == ".aNm" || ext == ".aNM" ||
+      ext == ".anM" || ext == ".AnM" || ext == ".ANM") {
+    return FileType::ANM;
+  }
   return FileType::Unknown;
 }
 } // namespace
 
-struct MeshLoader final : entt::loader<MeshLoader, Resource::Mesh>
+namespace AnimationViewer::Loader {
+struct Mesh final : entt::loader<Mesh, Resource::Mesh>
 {
   std::shared_ptr<Resource::Mesh> load(const std::string& name,
                                        const openblack::l3d::L3DFile& l3d) const
@@ -96,6 +105,21 @@ struct MeshLoader final : entt::loader<MeshLoader, Resource::Mesh>
   }
 };
 
+struct Animation final : entt::loader<Animation, Resource::Animation>
+{
+  std::shared_ptr<Resource::Animation> load(const std::string& name,
+                                            const openblack::anm::ANMFile& anm) const
+  {
+    auto animation = std::make_shared<Resource::Animation>();
+    animation->name = anm.GetHeader().name;
+
+    // TODO: copy data over from anm to animation resource
+
+    return animation;
+  }
+};
+} // namespace AnimationViewer::Loader
+
 std::unique_ptr<ResourceManager>
 ResourceManager::create()
 {
@@ -135,16 +159,26 @@ ResourceManager::animation_cache() const
   return animation_cache_;
 }
 
-std::optional<entt::hashed_string>
+std::optional<std::pair<entt::hashed_string, ResourceManager::Type>>
 ResourceManager::load_file(const std::filesystem::path& path)
 {
   switch (detect_file_type(path)) {
-    case FileType::L3D:
-      return load_l3d_file(path);
+    case FileType::L3D: {
+      auto mesh = load_l3d_file(path);
+      if (mesh.has_value()) {
+        return std::make_pair(*mesh, Type::Mesh);
+      }
+    } break;
+    case FileType::ANM: {
+      auto animation = load_anm_file(path);
+      if (animation.has_value()) {
+        return std::make_pair(*animation, Type::Animation);
+      }
+    } break;
     case FileType::Unknown:
       fprintf(stderr, "[scene]: Unsupported filetype: %s\n", path.c_str());
-      return std::nullopt;
   }
+  return std::nullopt;
 }
 
 std::optional<entt::hashed_string>
@@ -153,6 +187,16 @@ ResourceManager::load_l3d_file(const std::filesystem::path& path)
   openblack::l3d::L3DFile l3d;
   l3d.Open(path.string());
   auto id = entt::hashed_string{ path.string().c_str() };
-  mesh_cache_.load<MeshLoader>(id, path.filename().string(), l3d);
+  mesh_cache_.load<Loader::Mesh>(id, path.filename().string(), l3d);
+  return std::make_optional(id);
+}
+
+std::optional<entt::hashed_string>
+ResourceManager::load_anm_file(const std::filesystem::path& path)
+{
+  openblack::anm::ANMFile anm;
+  anm.Open(path.string());
+  auto id = entt::hashed_string{ path.string().c_str() };
+  animation_cache_.load<Loader::Animation>(id, path.filename().string(), anm);
   return std::make_optional(id);
 }

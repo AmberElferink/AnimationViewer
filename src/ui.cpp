@@ -138,9 +138,17 @@ Ui::run(Scene& scene,
                             ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, height), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Assets", &show_assets_)) {
+      ImGui::Columns(2);
+      ImGui::Text("Meshes");
       resource_manager.mesh_cache().each([&resource_manager](const auto id) {
         ImGui::BulletText("%s", resource_manager.mesh_cache().handle(id)->name.c_str());
       });
+      ImGui::NextColumn();
+      ImGui::Text("Animations");
+      resource_manager.animation_cache().each([&resource_manager](const auto id) {
+        ImGui::BulletText("%s", resource_manager.animation_cache().handle(id)->name.c_str());
+      });
+      ImGui::Columns(1);
       ImGui::End();
     }
   }
