@@ -113,6 +113,7 @@ if(SPNAV_LIBRARY)
   target_link_libraries(AnimationViewerLib PRIVATE ${SPNAV_LIBRARY})
 endif()
 
+add_subdirectory(3rd_party/anm)
 add_subdirectory(3rd_party/glad)
 add_subdirectory(3rd_party/imgui-docking)
 add_subdirectory(3rd_party/l3d)
