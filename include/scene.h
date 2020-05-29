@@ -5,24 +5,25 @@
 #include <vector>
 
 #include <entt/core/hashed_string.hpp>
+#include <entt/entity/registry.hpp>
 
 #include "camera.h"
 
 union SDL_Event;
 
 namespace AnimationViewer {
-    class ResourceManager;
+class ResourceManager;
 
-struct MeshEntityData
+namespace Components {
+struct Mesh
 {
-    std::vector <entt::hashed_string> ids;
-    std::vector<glm::mat4> bone_trans_rots;
-
-    MeshEntityData()
-    {
-
-    }
+  entt::hashed_string id;
 };
+struct Armature
+{
+  std::vector<glm::mat4> joints;
+};
+} // namespace Components
 
 class Scene
 {
@@ -32,27 +33,28 @@ public:
 
   /// Update scene based on SDL events
   void process_event(const SDL_Event& event, std::chrono::microseconds& dt);
-  void add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_position, AnimationViewer::ResourceManager& resource_manager);
+  void add_mesh(const entt::hashed_string& id,
+                const glm::ivec2& screen_space_position,
+                AnimationViewer::ResourceManager& resource_manager);
 
-  void run(ResourceManager &resource_manager);
+  void run(ResourceManager& resource_manager);
 
   /// A scene can have any number of cameras including zero
   /// This returns the camera selected for rendering or a default camera
   /// if there are no cameras in the scene.
   const Camera& active_camera() const;
-  const MeshEntityData& meshes() const;
+  const entt::registry& registry() const;
 
 protected:
   Scene();
 
-
 private:
-
   /// Default read-only camera used only if there is no camera in the scene
   /// selected
   Camera default_camera_;
   uint32_t active_camera_;
   std::vector<Camera> cameras_;
-  MeshEntityData meshes_entity_;
+
+  mutable entt::registry registry_;
 };
 } // namespace AnimationViewer

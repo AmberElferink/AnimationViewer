@@ -114,7 +114,6 @@ Renderer::~Renderer()
   SDL_GL_DeleteContext(context_);
 }
 
-
 void
 Renderer::render(const Scene& scene,
                  const ResourceManager& resource_manager,
@@ -127,34 +126,28 @@ Renderer::render(const Scene& scene,
   }
 
   const auto& camera = scene.active_camera();
+
+  mat4 view_matrix = glm::transpose(camera.matrix());
+  vec3 direction_to_sun = glm::vec3(0, 1, 0);
+
+  // clearing screen with a color which should never be seen
+  back_buffer_->clear({ clear_color }, { 1.0f });
+
+  mesh_uniform_t mesh_vertex_uniform{
+    camera.perspective(static_cast<float>(width_) / height_),
+    view_matrix,
+    glm::vec4(direction_to_sun, 0),
+    // bone_trans_rots filled with memcpy
+    {},
+  };
+
   {
-    mat4 view_matrix = glm::transpose(camera.matrix());
-    vec3 direction_to_sun = glm::vec3(0, 1, 0);
-    const std::vector<glm::mat4> &bone_trans_rots = scene.meshes().bone_trans_rots;
-
-
+    ScopedDebugGroup group("Rayleigh Sky in Screen Space");
     sky_uniform_t sky_uniform{
       view_matrix, direction_to_sun, camera.fov_y(), width_, height_,
     };
     rayleigh_sky_uniform_buffer_->upload(&sky_uniform, sizeof(sky_uniform));
 
-    mesh_uniform_t mesh_vertex_uniform{
-      camera.perspective(static_cast<float>(width_) / height_),
-      view_matrix,
-      glm::vec4(direction_to_sun, 0),
-      // bone_trans_rots filled with memcpy
-      {},
-    };
-    memcpy(mesh_vertex_uniform.bone_trans_rots, bone_trans_rots.data(), bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
-
-    mesh_vertex_uniform_buffer_->upload(&mesh_vertex_uniform, sizeof(mesh_vertex_uniform));
-  }
-
-  // clearing screen with a color which should never be seen
-  back_buffer_->clear({ clear_color }, {1.0f});
-
-  {
-    ScopedDebugGroup group("Rayleigh Sky in Screen Space");
     rayleigh_sky_pipeline_->bind();
     full_screen_quad_->bind();
     rayleigh_sky_uniform_buffer_->bind(0);
@@ -165,9 +158,24 @@ Renderer::render(const Scene& scene,
     ScopedDebugGroup group("Draw Meshes");
     mesh_pipeline_->bind();
     mesh_vertex_uniform_buffer_->bind(0);
-    for (const auto& id: scene.meshes().ids) {
-       //Mesh
-      const auto& res = resource_manager.mesh_cache().handle(id);
+
+    // Get a multi component view of all entities which have component Mesh and Armature
+    auto view = scene.registry().view<const Components::Mesh, const Components::Armature>();
+    for (const auto& entity : view) {
+      // Get the mesh component of the entity
+      const auto& mesh = view.get<const Components::Mesh>(entity);
+      // Get the Armature component of the entity
+      const auto& armature = view.get<const Components::Armature>(entity);
+
+      const std::vector<glm::mat4>& bone_trans_rots = armature.joints;
+      memcpy(mesh_vertex_uniform.bone_trans_rots,
+             bone_trans_rots.data(),
+             bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
+
+      mesh_vertex_uniform_buffer_->upload(&mesh_vertex_uniform, sizeof(mesh_vertex_uniform));
+
+      // Mesh
+      const auto& res = resource_manager.mesh_cache().handle(mesh.id);
       assert(res->gpu_resource);
       res->gpu_resource->bind();
       res->gpu_resource->draw();

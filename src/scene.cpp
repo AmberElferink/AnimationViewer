@@ -1,9 +1,12 @@
 #include "scene.h"
-#include "resource.h"
 
+#include <iostream>
 #include <string>
 
+#include <glm/gtx/string_cast.hpp>
 #include <glm/trigonometric.hpp>
+
+#include "resource.h"
 
 using namespace AnimationViewer;
 
@@ -28,19 +31,18 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
   }
 }
 
-#include <iostream>
-#include <glm/gtx/string_cast.hpp>
-
-
-//TODO: Make an animation manager to put the code below. 
+// TODO: Make an animation manager to put the code below.
 // It should have an update function with timestamps as well, called from game.cpp
 // It should have an accessible ResourceManager (the one below does not work), find another way.
-void Scene::add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_space_position, ResourceManager& resource_manager)
+void
+Scene::add_mesh(const entt::hashed_string& id,
+                const glm::ivec2& screen_space_position,
+                ResourceManager& resource_manager)
 {
-  meshes_entity_.ids.push_back(id);
-
   const auto& mesh = resource_manager.mesh_cache().handle(id);
 
+  std::vector<glm::mat4> armature;
+  armature.reserve(mesh->bones.size());
   for (size_t i = 0; i < mesh->bones.size(); i++) {
     const bone_t& bone = mesh->bones[i];
     glm::mat4 rot = glm::mat4(bone.orientation);
@@ -63,14 +65,22 @@ void Scene::add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_spa
     }
 
     // mesh entity data add
-    meshes_entity_.bone_trans_rots.push_back(trans_rot);
+    armature.push_back(trans_rot);
   }
+
+  // construct a naked entity with no components (like a GameObject in Unity) and return its
+  // identifier
+  auto entity = registry_.create();
+  // Add a mesh component to entity
+  registry_.emplace<Components::Mesh>(entity, id);
+  // Add an armature component to entity
+  registry_.emplace<Components::Armature>(entity, armature);
 }
 
 void
 Scene::run(ResourceManager& resource_manager)
 {
-    //calc_bone_trans_rots(resource_manager);
+  // calc_bone_trans_rots(resource_manager);
 }
 
 const Camera&
@@ -82,7 +92,8 @@ Scene::active_camera() const
   return cameras_[active_camera_];
 }
 
-const MeshEntityData& Scene::meshes() const
+const entt::registry&
+Scene::registry() const
 {
-  return meshes_entity_;                                                                                                   
+  return registry_;
 }
