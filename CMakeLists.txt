@@ -114,7 +114,7 @@ if(SPNAV_LIBRARY)
 endif()
 
 add_subdirectory(3rd_party/glad)
-add_subdirectory(3rd_party/imgui-1.76)
+add_subdirectory(3rd_party/imgui-docking)
 add_subdirectory(3rd_party/l3d)
 
 target_include_directories(AnimationViewerLib
