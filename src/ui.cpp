@@ -132,30 +132,46 @@ Ui::run(Scene& scene,
   if (show_assets_) {
     dock_padding += viewport->Size.y * 0.2f;
     auto height = viewport->Size.y * 0.2f;
-    ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + viewport->Size.y - height), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + viewport->Size.y - height),
+                            ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, height), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Assets", &show_assets_)) {
+      resource_manager.mesh_cache().each([&resource_manager](const auto id) {
+        ImGui::BulletText("%s", resource_manager.mesh_cache().handle(id)->name.c_str());
+      });
       ImGui::End();
     }
   }
 
   if (show_scene_) {
-    ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + title_bar_height), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(viewport->Size.x * 0.2f, viewport->Size.y - dock_padding), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + title_bar_height),
+                            ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(viewport->Size.x * 0.2f, viewport->Size.y - dock_padding),
+                             ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Scene", &show_scene_)) {
-      if (ImGui::TreeNode("Meshes")) {
-        // Loop through a mesh component view of all entities which have the component
-        scene.registry().view<const Components::Mesh>().each(
-          [&resource_manager](const Components::Mesh& mesh) {
-            ImGui::BulletText("%s", resource_manager.mesh_cache().handle(mesh.id)->name.c_str());
-          });
-        ImGui::TreePop();
-      }
+      char entity_name[256];
+      uint32_t i = 0;
+      auto& registry = scene.registry();
+      registry.each([&resource_manager, &registry, &i, &entity_name](const entt::entity& entity) {
+        snprintf(entity_name, sizeof(entity_name), "Entity %d", ++i);
+        if (ImGui::TreeNode(entity_name)) {
+          if (registry.has<Components::Mesh>(entity)) {
+            auto mesh = registry.get<Components::Mesh>(entity);
+            ImGui::BulletText("Mesh: %s",
+                              resource_manager.mesh_cache().handle(mesh.id)->name.c_str());
+          }
+          if (registry.has<Components::Animation>(entity)) {
+            auto animation = registry.get<Components::Animation>(entity);
+            ImGui::BulletText(
+              "Animation: %s",
+              resource_manager.animation_cache().handle(animation.id)->name.c_str());
+          }
+          ImGui::TreePop();
+        }
+      });
       ImGui::End();
     }
   }
-
-  // ImGui::ShowDemoWindow();
 
   // Rendering
   ImGui::Render();

@@ -23,6 +23,11 @@ struct Armature
 {
   std::vector<glm::mat4> joints;
 };
+struct Animation
+{
+  entt::hashed_string id;
+  uint32_t dummy; // TODO: replace me with things an animation needs, such as current animation time
+};
 } // namespace Components
 
 class Scene

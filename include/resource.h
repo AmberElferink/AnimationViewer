@@ -1,15 +1,15 @@
 #pragma once
 
+#include <array>
 #include <filesystem>
 #include <memory>
 #include <optional>
 #include <vector>
-#include <array>
 
 #include <entt/entt.hpp>
-#include <glm/vec3.hpp>
-#include <glm/matrix.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/matrix.hpp>
+#include <glm/vec3.hpp>
 
 namespace AnimationViewer {
 namespace Graphics {
@@ -17,29 +17,40 @@ struct IndexedMesh;
 class Renderer;
 } // namespace Graphics
 
-
-struct vertex_t {
+struct vertex_t
+{
   glm::vec3 position;
   glm::vec3 normal;
   float bone_id;
 };
 
-struct bone_t {
-    uint32_t parent;
-    uint32_t firstChild;
-    uint32_t rightSibling;
-    glm::vec3 position;
-    glm::mat3 orientation;
+struct bone_t
+{
+  uint32_t parent;
+  uint32_t firstChild;
+  uint32_t rightSibling;
+  glm::vec3 position;
+  glm::mat3 orientation;
 };
 
-struct MeshResource {
-  MeshResource() = default;
+namespace Resource {
+struct Mesh
+{
+  Mesh() = default;
   std::string name;
   std::vector<vertex_t> vertices;
   std::vector<bone_t> bones;
   std::vector<uint16_t> indices;
   std::unique_ptr<Graphics::IndexedMesh> gpu_resource;
 };
+
+struct Animation
+{
+  Animation() = default;
+  std::string name;
+  // TODO: Load animation information here such as keyframes and timing
+};
+} // namespace Resource
 
 class ResourceManager
 {
@@ -55,15 +66,17 @@ public:
   /// @path is the path of the file to load
   std::optional<entt::hashed_string> load_file(const std::filesystem::path& path);
 
-  const entt::cache<MeshResource>& mesh_cache() const;
+  const entt::cache<Resource::Mesh>& mesh_cache() const;
+  const entt::cache<Resource::Animation>& animation_cache() const;
 
 protected:
-  explicit ResourceManager(entt::cache<MeshResource>&& mesh_cache);
+  ResourceManager(entt::cache<Resource::Mesh>&& mesh_cache,
+                  entt::cache<Resource::Animation>&& animation_cache);
 
   std::optional<entt::hashed_string> load_l3d_file(const std::filesystem::path& path);
 
 private:
-  entt::cache<MeshResource> mesh_cache_;
- 
+  entt::cache<Resource::Mesh> mesh_cache_;
+  entt::cache<Resource::Animation> animation_cache_;
 };
 } // namespace AnimationViewer

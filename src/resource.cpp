@@ -33,27 +33,26 @@ detect_file_type(const std::filesystem::path& path)
 }
 } // namespace
 
-struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
+struct MeshLoader final : entt::loader<MeshLoader, Resource::Mesh>
 {
-  std::shared_ptr<MeshResource> load(const std::string& name,
-                                     const openblack::l3d::L3DFile& l3d) const
+  std::shared_ptr<Resource::Mesh> load(const std::string& name,
+                                       const openblack::l3d::L3DFile& l3d) const
   {
-    auto mesh = std::make_shared<MeshResource>();
+    auto mesh = std::make_shared<Resource::Mesh>();
     mesh->name = name;
 
     mesh->bones.reserve(l3d.GetBones().size());
     for (const auto& bone : l3d.GetBones()) {
-      glm::mat3 orient = glm::make_mat3(bone.orientation); // If weird shit happens, transpose
+      glm::mat3 orient = glm::make_mat3(bone.orientation);
 
       mesh->bones.push_back({
-          bone.parent,
-          bone.firstChild,
-          bone.rightSibling,
-          { bone.position.x, bone.position.y, bone.position.z },
-          orient,
-          });
+        bone.parent,
+        bone.firstChild,
+        bone.rightSibling,
+        { bone.position.x, bone.position.y, bone.position.z },
+        orient,
+      });
     }
-
 
     // Add all vertices
     int vertex_index = 0, vertex_group_index = 0;
@@ -100,12 +99,16 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
 std::unique_ptr<ResourceManager>
 ResourceManager::create()
 {
-  entt::cache<MeshResource> mesh_cache{};
-  return std::unique_ptr<ResourceManager>(new ResourceManager(std::move(mesh_cache)));
+  entt::cache<Resource::Mesh> mesh_cache{};
+  entt::cache<Resource::Animation> animation_cache{};
+  return std::unique_ptr<ResourceManager>(
+    new ResourceManager(std::move(mesh_cache), std::move(animation_cache)));
 }
 
-ResourceManager::ResourceManager(entt::cache<MeshResource>&& mesh_cache)
+ResourceManager::ResourceManager(entt::cache<Resource::Mesh>&& mesh_cache,
+                                 entt::cache<Resource::Animation>&& animation_cache)
   : mesh_cache_(std::move(mesh_cache))
+  , animation_cache_(std::move(animation_cache))
 {}
 
 ResourceManager::~ResourceManager() = default;
@@ -113,17 +116,23 @@ ResourceManager::~ResourceManager() = default;
 void
 ResourceManager::upload_dirty_buffers(Graphics::Renderer& renderer)
 {
-  mesh_cache_.each([&renderer](MeshResource& res) {
+  mesh_cache_.each([&renderer](Resource::Mesh& res) {
     if (!res.gpu_resource) {
       res.gpu_resource = renderer.upload_mesh(res.vertices, res.indices);
     }
   });
 }
 
-const entt::cache<MeshResource>&
+const entt::cache<Resource::Mesh>&
 ResourceManager::mesh_cache() const
 {
   return mesh_cache_;
+}
+
+const entt::cache<Resource::Animation>&
+ResourceManager::animation_cache() const
+{
+  return animation_cache_;
 }
 
 std::optional<entt::hashed_string>
