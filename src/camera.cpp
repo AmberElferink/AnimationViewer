@@ -10,7 +10,7 @@ Camera::Camera(const glm::vec3& origin, float yaw, float pitch, float fov_y) noe
   , yaw_(yaw)
   , pitch_(pitch)
   , fov_y_(fov_y)
-  , near_(0.001f)
+  , near_(0.1f)
   , far_(1000.0f)
 {}
 
