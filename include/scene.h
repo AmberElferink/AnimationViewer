@@ -40,9 +40,8 @@ public:
   /// This returns the camera selected for rendering or a default camera
   /// if there are no cameras in the scene.
   const Camera& active_camera() const;
-  const MeshEntityData& Scene::meshes() const;
+  const MeshEntityData& meshes() const;
 
-  
 protected:
   Scene();
 

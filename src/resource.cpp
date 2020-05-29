@@ -42,7 +42,6 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
     mesh->name = name;
 
     mesh->bones.reserve(l3d.GetBones().size());
-    int boneNr = 0;
     for (const auto& bone : l3d.GetBones()) {
       glm::mat3 orient = glm::make_mat3(bone.orientation); // If weird shit happens, transpose
 
@@ -60,45 +59,40 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
     int vertex_index = 0, vertex_group_index = 0;
 
     mesh->vertices.reserve(l3d.GetVertices().size());
-    for (int i = 0; i < l3d.GetVertices().size(); i++)
-    {
-        const auto& vertex = l3d.GetVertices()[i];
-        if (vertex_index >= l3d.GetLookUpTableData()[vertex_group_index].vertexCount) {
-            vertex_group_index++;
-            vertex_index = 0;
-        }
+    for (size_t i = 0; i < l3d.GetVertices().size(); i++) {
+      const auto& vertex = l3d.GetVertices()[i];
+      if (vertex_index >= l3d.GetLookUpTableData()[vertex_group_index].vertexCount) {
+        vertex_group_index++;
+        vertex_index = 0;
+      }
 
-        uint32_t bone_index = l3d.GetLookUpTableData()[vertex_group_index].boneIndex;
+      uint32_t bone_index = l3d.GetLookUpTableData()[vertex_group_index].boneIndex;
 
-        mesh->vertices.push_back({
+      mesh->vertices.push_back({
         { vertex.position.x, vertex.position.y, vertex.position.z },
         { vertex.normal.x, vertex.normal.y, vertex.normal.z },
         (float)bone_index,
-        });
+      });
 
-        vertex_index++;
+      vertex_index++;
     }
-
 
     // Correctly input Indices
-    int indices_index = 0, vertices_offset = 0, indices_group = 0;
+    uint32_t indices_index = 0, vertices_offset = 0, indices_group = 0;
 
     mesh->indices.reserve(l3d.GetIndices().size());
-    for (int i = 0; i < l3d.GetIndices().size(); i++)
-    {
-        if (indices_index >= l3d.GetPrimitiveHeaders()[indices_group].numTriangles * 3) {
-            vertices_offset += l3d.GetPrimitiveHeaders()[indices_group].numVertices;
-            indices_index = 0;
-            indices_group++;
-        }
-        
-        mesh->indices.push_back(
-            l3d.GetIndices()[i] + vertices_offset
-        );
+    for (size_t i = 0; i < l3d.GetIndices().size(); i++) {
+      if (indices_index >= l3d.GetPrimitiveHeaders()[indices_group].numTriangles * 3) {
+        vertices_offset += l3d.GetPrimitiveHeaders()[indices_group].numVertices;
+        indices_index = 0;
+        indices_group++;
+      }
 
-        indices_index++;
+      mesh->indices.push_back(l3d.GetIndices()[i] + vertices_offset);
+
+      indices_index++;
     }
-    
+
     return mesh;
   }
 };

@@ -137,12 +137,13 @@ Renderer::render(const Scene& scene,
       view_matrix, direction_to_sun, camera.fov_y(), width_, height_,
     };
     rayleigh_sky_uniform_buffer_->upload(&sky_uniform, sizeof(sky_uniform));
-    
+
     mesh_uniform_t mesh_vertex_uniform{
       camera.perspective(static_cast<float>(width_) / height_),
       view_matrix,
-      glm::vec4(direction_to_sun, 0)
-      //bone_trans_rots filled with memcpy
+      glm::vec4(direction_to_sun, 0),
+      // bone_trans_rots filled with memcpy
+      {},
     };
     memcpy(mesh_vertex_uniform.bone_trans_rots, bone_trans_rots.data(), bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
 
