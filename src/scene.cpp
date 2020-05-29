@@ -44,9 +44,9 @@ void Scene::add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_spa
   for (int i = 0; i < mesh->bones.size(); i++)
   {
       const bone_t& bone = mesh->bones[i];
-      glm::mat4 trans = glm::translate(glm::mat4(1.0f), { bone.position.x, bone.position.y, bone.position.z });
       glm::mat4 rot = glm::mat4(bone.orientation);
-      glm::mat4 trans_rot = rot * trans;
+      glm::mat4 trans = glm::translate(glm::mat4(1.0f), { bone.position.x, bone.position.y, bone.position.z });
+      glm::mat4 trans_rot = trans * rot;
 
       int parent_id = bone.parent;
       while (parent_id != -1) {
@@ -54,7 +54,7 @@ void Scene::add_mesh(const entt::hashed_string& id, const glm::ivec2& screen_spa
 
           glm::mat4 parent_trans = glm::translate(glm::mat4(1.0f), { parent_bone.position.x, parent_bone.position.y, parent_bone.position.z });
           glm::mat4 parent_rot = glm::mat4(parent_bone.orientation);
-          glm::mat4 parent_trans_rot = parent_rot * parent_trans;
+          glm::mat4 parent_trans_rot = parent_trans * parent_rot;
           trans_rot = parent_trans_rot * trans_rot;
 
           parent_id = parent_bone.parent;
