@@ -108,6 +108,7 @@ PipelineRasterOpenGL::set_uniform(uint8_t location,
 void
 PipelineRasterOpenGL::bind()
 {
+  glFrontFace(GL_CW);
   glUseProgram(program_);
 }
 

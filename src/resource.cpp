@@ -72,13 +72,6 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
     }
 
 
-    //l3d.GetVertexGroupSpan();
-    auto bla = l3d.GetLookUpTableData();
-    int vertices = 0;
-    for (const auto& td : l3d.GetLookUpTableData()) {
-        vertices += td.vertexCount;
-    }
-
     // Add all vertices
     int vertex_index = 0, vertex_group_index = 0;
 
@@ -92,19 +85,36 @@ struct MeshLoader final : entt::loader<MeshLoader, MeshResource>
         }
 
         glm::uint32 bone_index = l3d.GetLookUpTableData()[vertex_group_index].boneIndex;
-        glm::vec3 bone_position = { l3d.GetBones()[bone_index].position.x, l3d.GetBones()[bone_index].position.y, l3d.GetBones()[bone_index].position.z };
 
         mesh->vertices.push_back({
         { vertex.position.x, vertex.position.y, vertex.position.z },
         { vertex.normal.x, vertex.normal.y, vertex.normal.z },
         (float)bone_index,
-            });
+        });
 
         vertex_index++;
     }
-        
-    mesh->indices = l3d.GetIndices();
 
+
+    // Correctly input Indices
+    int indices_index = 0, vertices_offset = 0, indices_group = 0;
+
+    mesh->indices.reserve(l3d.GetIndices().size());
+    for (int i = 0; i < l3d.GetIndices().size(); i++)
+    {
+        if (indices_index >= l3d.GetPrimitiveHeaders()[indices_group].numTriangles * 3) {
+            vertices_offset += l3d.GetPrimitiveHeaders()[indices_group].numVertices;
+            indices_index = 0;
+            indices_group++;
+        }
+        
+        mesh->indices.push_back(
+            l3d.GetIndices()[i] + vertices_offset
+        );
+
+        indices_index++;
+    }
+    
     return mesh;
   }
 };
