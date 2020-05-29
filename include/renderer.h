@@ -35,6 +35,7 @@ public:
               const std::chrono::microseconds& dt);
   void set_back_buffer_size(uint16_t width, uint16_t height);
   std::unique_ptr<IndexedMesh> upload_mesh(const std::vector<vertex_t>& vertices, const std::vector<uint16_t>& indices);
+  void* context_handle();
 
 protected:
   explicit Renderer(SDL_Window* window);

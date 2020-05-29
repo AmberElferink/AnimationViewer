@@ -20,14 +20,14 @@ class Scene;
 class Ui
 {
 public:
-  static std::unique_ptr<Ui> create(SDL_Window* const window);
+  static std::unique_ptr<Ui> create(SDL_Window* const window, void* gl_context);
   virtual ~Ui();
   void run(Scene& scene,
            ResourceManager& resource_manager,
            const std::vector<std::pair<std::string, float>>& renderer_metrics,
            std::chrono::microseconds& dt);
   void draw() const;
-  void process_event(const SDL_Event& event);
+  bool process_event(const SDL_Event& event);
 
 protected:
   Ui(SDL_Window* const window, ImGuiContext* const context);

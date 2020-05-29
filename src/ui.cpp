@@ -2,8 +2,10 @@
 
 #include <map>
 
+#include <SDL_events.h>
 #include <SDL_video.h>
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include <examples/imgui_impl_opengl3.h>
 #include <examples/imgui_impl_sdl.h>
@@ -14,7 +16,7 @@
 using namespace AnimationViewer;
 
 std::unique_ptr<Ui>
-Ui::create(SDL_Window* const window)
+Ui::create(SDL_Window* const window, void* gl_context)
 {
   if (!IMGUI_CHECKVERSION()) {
     return nullptr;
@@ -24,8 +26,13 @@ Ui::create(SDL_Window* const window)
     return nullptr;
   }
 
+  // Enable docking and multi viewport
+  auto& io = ImGui::GetIO();
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
   // Setup Platform/Renderer bindings
-  if (!ImGui_ImplSDL2_InitForOpenGL(window, nullptr)) {
+  if (!ImGui_ImplSDL2_InitForOpenGL(window, gl_context)) {
     ImGui::DestroyContext(context);
     return nullptr;
   }
@@ -35,6 +42,14 @@ Ui::create(SDL_Window* const window)
     return nullptr;
   }
 
+  // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look
+  // identical to regular ones.
+  ImGuiStyle& style = ImGui::GetStyle();
+  if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+    style.WindowRounding = 0.0f;
+    style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+  }
+
   return std::unique_ptr<Ui>(new Ui(window, context));
 }
 
@@ -42,8 +57,8 @@ Ui::Ui(SDL_Window* const window, ImGuiContext* const context)
   : window_(window)
   , context_(context)
   , show_statistics_(false)
-  , show_assets_(false)
-  , show_scene_(false)
+  , show_assets_(true)
+  , show_scene_(true)
 {}
 
 Ui::~Ui()
@@ -62,6 +77,8 @@ Ui::run(Scene& scene,
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplSDL2_NewFrame(window_);
   ImGui::NewFrame();
+
+  ImGui::DockSpaceOverViewport(nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
 
   ImGui::BeginMainMenuBar();
   if (ImGui::BeginMenu("View")) {
@@ -107,20 +124,38 @@ Ui::run(Scene& scene,
     ImGui::End();
   }
 
-  if (show_assets_ && ImGui::Begin("Assets", &show_assets_)) {
-    ImGui::End();
+  ImGuiStyle& style = ImGui::GetStyle();
+  auto title_bar_height = ImGui::GetFontSize() + style.FramePadding.y * 2.0f;
+  auto viewport = ImGui::GetMainViewport();
+  auto dock_padding = title_bar_height;
+
+  if (show_assets_) {
+    dock_padding += viewport->Size.y * 0.2f;
+    auto height = viewport->Size.y * 0.2f;
+    ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + viewport->Size.y - height), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, height), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Assets", &show_assets_)) {
+      ImGui::End();
+    }
   }
 
-  if (show_scene_ && ImGui::Begin("Scene", &show_scene_)) {
-    if (ImGui::TreeNode("Meshes")) {
-      // Loop through a mesh component view of all entities which have the component
-      scene.registry().view<const Components::Mesh>().each([&resource_manager](const Components::Mesh& mesh) {
-        ImGui::BulletText("%s", resource_manager.mesh_cache().handle(mesh.id)->name.c_str());
-      });
-      ImGui::TreePop();
+  if (show_scene_) {
+    ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + title_bar_height), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(viewport->Size.x * 0.2f, viewport->Size.y - dock_padding), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Scene", &show_scene_)) {
+      if (ImGui::TreeNode("Meshes")) {
+        // Loop through a mesh component view of all entities which have the component
+        scene.registry().view<const Components::Mesh>().each(
+          [&resource_manager](const Components::Mesh& mesh) {
+            ImGui::BulletText("%s", resource_manager.mesh_cache().handle(mesh.id)->name.c_str());
+          });
+        ImGui::TreePop();
+      }
+      ImGui::End();
     }
-    ImGui::End();
   }
+
+  // ImGui::ShowDemoWindow();
 
   // Rendering
   ImGui::Render();
@@ -130,10 +165,22 @@ void
 Ui::draw() const
 {
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+  // Multi viewport handling
+  SDL_Window* backup_current_window = SDL_GL_GetCurrentWindow();
+  SDL_GLContext backup_current_context = SDL_GL_GetCurrentContext();
+  ImGui::UpdatePlatformWindows();
+  ImGui::RenderPlatformWindowsDefault();
+  SDL_GL_MakeCurrent(backup_current_window, backup_current_context);
 }
 
-void
+bool
 Ui::process_event(const SDL_Event& event)
 {
   ImGui_ImplSDL2_ProcessEvent(&event);
+  if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE &&
+      event.window.windowID == SDL_GetWindowID(window_)) {
+    return false;
+  }
+  return true;
 }

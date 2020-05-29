@@ -5,8 +5,8 @@
 #include <SDL.h>
 
 #include "camera.h"
-#include "scene.h"
 #include "resource.h"
+#include "scene.h"
 #include "ui.h"
 
 using namespace AnimationViewer;
@@ -195,7 +195,9 @@ Input::run(Ui& ui, Scene& scene, ResourceManager& resource_manager, std::chrono:
 #endif
 
   while (SDL_PollEvent(&event)) {
-    ui.process_event(event);
+    if (!ui.process_event(event)) {
+      quit_ = true;
+    }
     scene.process_event(event, dt);
     switch (event.type) {
       case SDL_QUIT:

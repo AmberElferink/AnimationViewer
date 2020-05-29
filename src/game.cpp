@@ -29,7 +29,7 @@ Game::create(const std::string& app_name, uint16_t width, uint16_t height)
   if (!renderer) {
     return nullptr;
   }
-  auto ui = Ui::create(window->get_native_handle());
+  auto ui = Ui::create(window->get_native_handle(), renderer->context_handle());
   if (!ui) {
     return nullptr;
   }

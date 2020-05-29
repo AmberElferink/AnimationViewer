@@ -222,6 +222,10 @@ Renderer::upload_mesh(const std::vector<vertex_t>& vertices, const std::vector<u
                              indices.size());
 }
 
+void* Renderer::context_handle() {
+  return context_;
+}
+
 void
 Renderer::create_pipeline()
 {
