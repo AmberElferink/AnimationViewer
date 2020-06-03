@@ -23,20 +23,28 @@ Camera::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
       speed *= 0.0025f;
       switch (event.jaxis.axis) {
         // Translate x
-        case 0: {
-        } break;
+        case 0:
+          origin_ += static_cast<float>(event.jaxis.value * speed * M_PI) *
+                     glm::vec3(glm::eulerAngleXY(pitch_, -yaw_) * glm::vec4(1, 0, 0, 0));
+          break;
         // Translate y
-        case 1: {
-        } break;
+        case 1:
+          origin_ += static_cast<float>(event.jaxis.value * speed * M_PI) *
+                     glm::vec3(glm::eulerAngleXY(pitch_, -yaw_) * glm::vec4(0, 1, 0, 0));
+          break;
         // Translate z
-        case 2: {
-        } break;
+        case 2:
+          origin_ += static_cast<float>(event.jaxis.value * speed * M_PI) *
+                     glm::vec3(glm::eulerAngleXY(pitch_, -yaw_) * glm::vec4(0, 0, -1, 0));
+          break;
         // Rotate x
-        case 3: {
-        } break;
+        case 3:
+          pitch_ += speed * event.jaxis.value;
+          break;
         // Rotate y
-        case 4: {
-        } break;
+        case 4:
+          yaw_ -= speed * event.jaxis.value;
+          break;
       }
     } break;
     case SDL_KEYDOWN: {
