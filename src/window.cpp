@@ -56,8 +56,8 @@ Window::get_dimensions(uint16_t& width, uint16_t& height)
 {
   int w, h;
 #if _WIN32
-  w = SDL_GetWindowSurface(handle_)->w;
-  h = SDL_GetWindowSurface(handle_)->h;
+  w = SDL_GetWindowSurface(handle_.get())->w;
+  h = SDL_GetWindowSurface(handle_.get())->h;
 #else
   SDL_GetWindowSize(handle_.get(), &w, &h);
 #endif
