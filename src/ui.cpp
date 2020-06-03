@@ -225,7 +225,7 @@ Ui::run(const Window& window,
               ENTT_ID_TYPE id;
               assert(payload->DataSize == sizeof(id));
               memcpy(&id, payload->Data, sizeof(id));
-              scene.registry().emplace<Components::Animation>(entity, id, /*dummy=*/0);
+              scene.registry().emplace<Components::Animation>(entity, id, /*dummy=*/0u);
             }
             ImGui::EndDragDropTarget();
           }
@@ -251,7 +251,7 @@ Ui::run(const Window& window,
             ENTT_ID_TYPE id;
             assert(payload->DataSize == sizeof(id));
             memcpy(&id, payload->Data, sizeof(id));
-            registry.emplace<Components::Animation>(*selected_entity, id, /*dummy=*/0);
+            registry.emplace<Components::Animation>(*selected_entity, id, /*dummy=*/0u);
           }
           ImGui::EndDragDropTarget();
         }
