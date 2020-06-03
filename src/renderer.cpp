@@ -187,24 +187,27 @@ Renderer::render(const Scene& scene,
     mesh_vertex_uniform_buffer_->bind(0);
 
     // Get a multi component view of all entities which have component Mesh and Armature
-    auto view =
-      scene.registry()
-        .view<const Components::Transform, const Components::Mesh, const Components::Armature>();
+    auto view = scene.registry().view<const Components::Transform, const Components::Mesh>();
     for (const auto& entity : view) {
       // Get the transform component of the entity
       const auto& transform = view.get<const Components::Transform>(entity);
       // Get the mesh component of the entity
       const auto& mesh = view.get<const Components::Mesh>(entity);
-      // Get the Armature component of the entity
-      const auto& armature = view.get<const Components::Armature>(entity);
 
       mesh_vertex_uniform.model_matrix = glm::translate(transform.position) *
                                          glm::toMat4(transform.orientation) *
                                          glm::scale(transform.scale);
-      const std::vector<glm::mat4>& bone_trans_rots = armature.joints;
-      memcpy(mesh_vertex_uniform.bone_trans_rots,
-             bone_trans_rots.data(),
-             bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
+
+      // Get the Armature component of the entity
+      if (scene.registry().has<const Components::Armature*>(entity)) {
+        auto armature = scene.registry().get<const Components::Armature*>(entity);
+        const std::vector<glm::mat4>& bone_trans_rots = armature->joints;
+        memcpy(mesh_vertex_uniform.bone_trans_rots,
+               bone_trans_rots.data(),
+               bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
+      } else {
+        mesh_vertex_uniform.bone_trans_rots[0] = glm::mat4(1.0f);
+      }
 
       mesh_vertex_uniform_buffer_->upload(&mesh_vertex_uniform, sizeof(mesh_vertex_uniform));
 

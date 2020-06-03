@@ -64,17 +64,21 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
     }
 
     // Add all vertices
-    int vertex_index = 0, vertex_group_index = 0;
+    uint32_t vertex_index = 0, vertex_group_index = 0;
 
     mesh->vertices.reserve(l3d.GetVertices().size());
     for (size_t i = 0; i < l3d.GetVertices().size(); i++) {
       const auto& vertex = l3d.GetVertices()[i];
-      if (vertex_index >= l3d.GetLookUpTableData()[vertex_group_index].vertexCount) {
+      if (l3d.GetLookUpTableData().size() > vertex_group_index &&
+          vertex_index >= l3d.GetLookUpTableData()[vertex_group_index].vertexCount) {
         vertex_group_index++;
         vertex_index = 0;
       }
 
-      uint32_t bone_index = l3d.GetLookUpTableData()[vertex_group_index].boneIndex;
+      uint32_t bone_index = 0;
+      if (l3d.GetLookUpTableData().size() > vertex_group_index) {
+        bone_index = l3d.GetLookUpTableData()[vertex_group_index].boneIndex;
+      }
 
       mesh->vertices.push_back({
         { vertex.position.x, vertex.position.y, vertex.position.z },

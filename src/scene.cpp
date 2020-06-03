@@ -170,8 +170,10 @@ Scene::add_mesh(ENTT_ID_TYPE id,
   registry_.emplace<Components::Transform>(entity);
   // Add a mesh component to entity
   registry_.emplace<Components::Mesh>(entity, id);
-  // Add an armature component to entity
-  registry_.emplace<Components::Armature>(entity, armature);
+  if (!armature.empty()) {
+    // Add an armature component to entity
+    registry_.emplace<Components::Armature>(entity, armature);
+  }
 }
 
 entt::registry&
