@@ -19,7 +19,7 @@ struct Transform
 {
   glm::vec3 position;
   glm::quat orientation;
-  glm::vec3 scale;
+  glm::vec3 scale{ 1.0f, 1.0f, 1.0f };
 };
 struct Camera
 {

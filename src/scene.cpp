@@ -163,6 +163,8 @@ Scene::add_mesh(ENTT_ID_TYPE id,
   // construct a naked entity with no components (like a GameObject in Unity) and return its
   // identifier
   auto entity = registry_.create();
+  // Add a transform component to entity
+  registry_.emplace<Components::Transform>(entity);
   // Add a mesh component to entity
   registry_.emplace<Components::Mesh>(entity, id);
   // Add an armature component to entity

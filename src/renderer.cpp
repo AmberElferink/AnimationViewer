@@ -6,6 +6,7 @@
 #include <SDL_video.h>
 #include <glad/glad.h>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/transform.hpp>
 #include <glm/matrix.hpp>
 
 #if __EMSCRIPTEN__
@@ -155,6 +156,7 @@ Renderer::render(const Scene& scene,
   mesh_uniform_t mesh_vertex_uniform{
     glm::perspective(camera.fov_y, static_cast<float>(width_) / height_, camera.near, camera.far),
     view_matrix,
+    glm::mat4(),
     glm::vec4(direction_to_sun, 0),
     // bone_trans_rots filled with memcpy
     {},
@@ -179,13 +181,20 @@ Renderer::render(const Scene& scene,
     mesh_vertex_uniform_buffer_->bind(0);
 
     // Get a multi component view of all entities which have component Mesh and Armature
-    auto view = scene.registry().view<const Components::Mesh, const Components::Armature>();
+    auto view =
+      scene.registry()
+        .view<const Components::Transform, const Components::Mesh, const Components::Armature>();
     for (const auto& entity : view) {
+      // Get the transform component of the entity
+      const auto& transform = view.get<const Components::Transform>(entity);
       // Get the mesh component of the entity
       const auto& mesh = view.get<const Components::Mesh>(entity);
       // Get the Armature component of the entity
       const auto& armature = view.get<const Components::Armature>(entity);
 
+      mesh_vertex_uniform.model_matrix = glm::translate(transform.position) *
+                                         glm::toMat4(transform.orientation) *
+                                         glm::scale(transform.scale);
       const std::vector<glm::mat4>& bone_trans_rots = armature.joints;
       memcpy(mesh_vertex_uniform.bone_trans_rots,
              bone_trans_rots.data(),

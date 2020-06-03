@@ -54,6 +54,7 @@ struct alignas(16) mesh_uniform_t
 {
   mat4 projection_matrix;
   mat4 view_matrix;
+  mat4 model_matrix;
   vec4 direction_to_sun;
   mat4 bone_trans_rots[256];
   // storage buffer
