@@ -7,7 +7,8 @@
 #include <tuple>
 #include <vector>
 
-#include <entt/entt.hpp>
+#include <entt/core/hashed_string.hpp>
+#include <entt/resource/cache.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/matrix.hpp>
 #include <glm/vec3.hpp>

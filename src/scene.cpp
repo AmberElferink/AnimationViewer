@@ -3,12 +3,9 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 
-#include <iostream>
-#include <string>
-
 #include <SDL_events.h>
-#include <glm/gtx/euler_angles.hpp>
-#include <glm/gtx/string_cast.hpp>
+#include <entt/entt.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/trigonometric.hpp>
 
 #include "resource.h"
@@ -46,30 +43,29 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
           case 0:
             transform.position +=
               static_cast<float>(event.jaxis.value * speed * M_PI) *
-              glm::vec3(glm::eulerAngleXY(transform.euler_angles.x, -transform.euler_angles.y) *
-                        glm::vec4(1, 0, 0, 0));
+              glm::vec3(glm::toMat4(transform.orientation) * glm::vec4(1, 0, 0, 0));
             break;
             // Translate y
           case 1:
             transform.position +=
               static_cast<float>(event.jaxis.value * speed * M_PI) *
-              glm::vec3(glm::eulerAngleXY(transform.euler_angles.x, -transform.euler_angles.y) *
-                        glm::vec4(0, 1, 0, 0));
+              glm::vec3(glm::toMat4(transform.orientation) * glm::vec4(0, 1, 0, 0));
             break;
             // Translate z
           case 2:
             transform.position +=
               static_cast<float>(event.jaxis.value * speed * M_PI) *
-              glm::vec3(glm::eulerAngleXY(transform.euler_angles.x, -transform.euler_angles.y) *
-                        glm::vec4(0, 0, -1, 0));
+              glm::vec3(glm::toMat4(transform.orientation) * glm::vec4(0, 0, -1, 0));
             break;
             // Rotate x
           case 3:
-            transform.euler_angles.x += speed * event.jaxis.value;
+            transform.orientation =
+              transform.orientation * glm::angleAxis(speed, glm::vec3(-1.0f, 0.0f, 0.0f));
             break;
             // Rotate y
           case 4:
-            transform.euler_angles.y += speed * event.jaxis.value;
+            transform.orientation =
+              glm::angleAxis(speed, glm::vec3(0.0f, -1.0f, 0.0f)) * transform.orientation;
             break;
         }
       } break;
@@ -81,14 +77,12 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
         }
         switch (event.key.keysym.sym) {
           case SDLK_w: {
-            transform.position += speed * glm::vec3(glm::eulerAngleXY(transform.euler_angles.x,
-                                                                      -transform.euler_angles.y) *
-                                                    glm::vec4(0, 0, -1, 0));
+            transform.position +=
+              speed * glm::vec3(glm::toMat4(transform.orientation) * glm::vec4(0, 0, -1, 0));
           } break;
           case SDLK_s: {
-            transform.position += speed * glm::vec3(glm::eulerAngleXY(transform.euler_angles.x,
-                                                                      -transform.euler_angles.y) *
-                                                    glm::vec4(0, 0, 1, 0));
+            transform.position +=
+              speed * glm::vec3(glm::toMat4(transform.orientation) * glm::vec4(0, 0, 1, 0));
           } break;
           case SDLK_e:
             transform.position.y += speed;
@@ -97,27 +91,29 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
             transform.position.y -= speed;
             break;
           case SDLK_a: {
-            transform.position += speed * glm::vec3(glm::eulerAngleXY(transform.euler_angles.x,
-                                                                      -transform.euler_angles.y) *
-                                                    glm::vec4(-1, 0, 0, 0));
+            transform.position +=
+              speed * glm::vec3(glm::toMat4(transform.orientation) * glm::vec4(-1, 0, 0, 0));
           } break;
           case SDLK_d: {
-            transform.position += speed * glm::vec3(glm::eulerAngleXY(transform.euler_angles.x,
-                                                                      -transform.euler_angles.y) *
-                                                    glm::vec4(1, 0, 0, 0));
+            transform.position +=
+              speed * glm::vec3(glm::toMat4(transform.orientation) * glm::vec4(1, 0, 0, 0));
           } break;
-          case SDLK_UP:
-            transform.euler_angles.x -= speed;
-            break;
-          case SDLK_DOWN:
-            transform.euler_angles.x += speed;
-            break;
+          case SDLK_UP: {
+            transform.orientation =
+              transform.orientation * glm::angleAxis(speed, glm::vec3(1.0f, 0.0f, 0.0f));
+          } break;
+          case SDLK_DOWN: {
+            transform.orientation =
+              transform.orientation * glm::angleAxis(speed, glm::vec3(-1.0f, 0.0f, 0.0f));
+          } break;
 
           case SDLK_LEFT: {
-            transform.euler_angles.y -= speed;
+            transform.orientation =
+              glm::angleAxis(speed, glm::vec3(0.0f, 1.0f, 0.0f)) * transform.orientation;
           } break;
           case SDLK_RIGHT: {
-            transform.euler_angles.y += speed;
+            transform.orientation =
+              glm::angleAxis(speed, glm::vec3(0.0f, -1.0f, 0.0f)) * transform.orientation;
           } break;
         }
       }

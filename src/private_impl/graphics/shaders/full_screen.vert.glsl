@@ -6,7 +6,7 @@ layout(location = 0) out vec2 texture_coordinates;
 
 void main() {
   gl_Position = vec4(
-    mix(1.0f, -1.0f, screen_coordinates.x),
+    mix(-1.0f, 1.0f, screen_coordinates.x),
     mix(-1.0f, 1.0f, screen_coordinates.y),
     0.0,
     1.0);

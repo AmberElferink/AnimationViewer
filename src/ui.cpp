@@ -4,6 +4,7 @@
 
 #include <SDL_events.h>
 #include <SDL_video.h>
+#include <imGuIZMOquat.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -259,8 +260,18 @@ Ui::run(const Window& window,
         if (registry.has<Components::Transform>(*selected_entity)) {
           if (ImGui::TreeNode("Transform Component")) {
             auto& transform = registry.get<Components::Transform>(*selected_entity);
+            ImGui::gizmo3D("##Dir1", transform.position, transform.orientation);
+
             ImGui::InputFloat3("Translation", glm::value_ptr(transform.position));
-            ImGui::InputFloat3("Rotation", glm::value_ptr(transform.euler_angles));
+            auto euler_angles = glm::degrees(glm::eulerAngles(transform.orientation));
+            ImGui::InputScalarN("Rotation",
+                                ImGuiDataType_Float,
+                                glm::value_ptr(euler_angles),
+                                3,
+                                nullptr,
+                                nullptr,
+                                "%.3f°");
+            transform.orientation = glm::radians(euler_angles);
             ImGui::InputFloat3("Scale", glm::value_ptr(transform.scale));
             ImGui::TreePop();
           }
@@ -269,7 +280,7 @@ Ui::run(const Window& window,
           if (ImGui::TreeNode("Camera Component")) {
             auto& camera = registry.get<Components::Camera>(*selected_entity);
             float fov = glm::degrees(camera.fov_y);
-            ImGui::InputFloat("Vertical of view", &fov, 0.0f, 0.0f, "%.3f°");
+            ImGui::InputFloat("Vertical of view", &fov, 1.0f, 5.0f, "%.3f°");
             camera.fov_y = glm::radians(fov);
             ImGui::InputFloat("Near Plane", &camera.near);
             ImGui::InputFloat("Far Plane", &camera.far);

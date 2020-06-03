@@ -4,8 +4,8 @@
 #include <memory>
 #include <vector>
 
-#include <entt/core/hashed_string.hpp>
 #include <entt/entity/registry.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
@@ -18,7 +18,7 @@ namespace Components {
 struct Transform
 {
   glm::vec3 position;
-  glm::vec3 euler_angles;
+  glm::quat orientation;
   glm::vec3 scale;
 };
 struct Camera
@@ -58,7 +58,7 @@ public:
   /// This returns the camera selected for rendering or a default camera
   /// if there are no cameras in the scene.
   entt::registry& registry();
-  const entt::registry& registry() const;
+  [[nodiscard]] const entt::registry& registry() const;
   static Components::Camera default_camera();
 
 protected:

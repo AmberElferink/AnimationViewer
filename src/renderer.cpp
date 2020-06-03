@@ -5,7 +5,7 @@
 
 #include <SDL_video.h>
 #include <glad/glad.h>
-#include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/matrix.hpp>
 
 #if __EMSCRIPTEN__
@@ -142,8 +142,8 @@ Renderer::render(const Scene& scene,
     auto camera_entity = cameras.front();
     camera = scene.registry().get<Components::Camera>(camera_entity);
     auto transform = scene.registry().get<Components::Transform>(camera_entity);
-    view_matrix = glm::translate(
-      glm::eulerAngleXY(transform.euler_angles.x, transform.euler_angles.y), -transform.position);
+    view_matrix =
+      glm::translate(glm::transpose(glm::toMat4(transform.orientation)), -transform.position);
   } else {
     assert(false);
   }
@@ -259,7 +259,7 @@ Renderer::create_pipeline()
       .fragment_shader_binary = rayleigh_sky_frag_glsl,
       .fragment_shader_size = sizeof(rayleigh_sky_frag_glsl) / sizeof(rayleigh_sky_frag_glsl[0]),
       .fragment_shader_entry_point = "main",
-      .winding_order = Pipeline::TriangleWindingOrder::Clockwise,
+      .winding_order = Pipeline::TriangleWindingOrder::CounterClockwise,
       .depth_write = false,
       .depth_test = Pipeline::DepthTest::Less,
     };
