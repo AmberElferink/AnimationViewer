@@ -4,7 +4,6 @@
 
 #include <SDL.h>
 
-#include "camera.h"
 #include "resource.h"
 #include "scene.h"
 #include "ui.h"

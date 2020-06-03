@@ -18,12 +18,11 @@ void main()
   vec2 screen_coordinates = vec2(texture_coordinates.x, texture_coordinates.y);
 
   const vec2 aspect_ratio = vec2(float(uniform_block.data.width) / uniform_block.data.height, 1);
-  const vec4 point_cam = vec4((2.0 * screen_coordinates - 1.0) * aspect_ratio * tan(uniform_block.data.camera_fov_y), 1.0, 0.0f);
+  vec4 point_cam = vec4((2.0 * screen_coordinates - 1.0) * aspect_ratio * tan(uniform_block.data.camera_fov_y), -1.0, 0.0f);
 
   vec4 direction = transpose(uniform_block.data.camera_rotation_matrix) * point_cam;
-  direction.y *= -1;
   // Grab translation from matrix by using augmented vector
-  vec4 origin = uniform_block.data.camera_rotation_matrix * vec4(0, 0, 0, 1);
+  vec4 origin = uniform_block.data.camera_rotation_matrix * vec4(0, 0, 0, -1);
   ray_t ray = ray_t(origin.xyz + ground, normalize(direction.xyz));
 
   out_color = vec4(compute_incident_light(ray, uniform_block.data.direction_to_sun), 1);

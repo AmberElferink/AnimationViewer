@@ -206,23 +206,30 @@ Ui::run(const Window& window,
 
       char entity_name[256];
       uint32_t i = 0;
-      scene.registry().each([&i, &scene, &entity_name](const entt::entity& entity) {
-        snprintf(entity_name, sizeof(entity_name), "Entity %d", ++i);
-        if (ImGui::Selectable(entity_name, selected_entity == entity)) {
-          selected_entity = entity;
-        }
-        // Allow dropping assets into component if an entity is selected
-        if (ImGui::BeginDragDropTarget()) {
-          auto payload = ImGui::AcceptDragDropPayload("DND_ANIMATION");
-          if (payload != nullptr) {
-            ENTT_ID_TYPE id;
-            assert(payload->DataSize == sizeof(id));
-            memcpy(&id, payload->Data, sizeof(id));
-            scene.registry().emplace<Components::Animation>(entity, id, /*dummy=*/0);
+      std::string component_type;
+      scene.registry().each(
+        [&i, &scene, &entity_name, &component_type](const entt::entity& entity) {
+          if (scene.registry().has<Components::Camera>(entity)) {
+            component_type = " (Camera)";
+          } else if (scene.registry().has<Components::Mesh>(entity)) {
+            component_type = " (Mesh)";
           }
-          ImGui::EndDragDropTarget();
-        }
-      });
+          snprintf(entity_name, sizeof(entity_name), "Entity %d%s", ++i, component_type.c_str());
+          if (ImGui::Selectable(entity_name, selected_entity == entity)) {
+            selected_entity = entity;
+          }
+          // Allow dropping assets into component if an entity is selected
+          if (ImGui::BeginDragDropTarget()) {
+            auto payload = ImGui::AcceptDragDropPayload("DND_ANIMATION");
+            if (payload != nullptr) {
+              ENTT_ID_TYPE id;
+              assert(payload->DataSize == sizeof(id));
+              memcpy(&id, payload->Data, sizeof(id));
+              scene.registry().emplace<Components::Animation>(entity, id, /*dummy=*/0);
+            }
+            ImGui::EndDragDropTarget();
+          }
+        });
       scene_window_hovered_ = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows);
       ImGui::End();
     }
@@ -249,16 +256,36 @@ Ui::run(const Window& window,
           ImGui::EndDragDropTarget();
         }
 
+        if (registry.has<Components::Transform>(*selected_entity)) {
+          if (ImGui::TreeNode("Transform Component")) {
+            auto& transform = registry.get<Components::Transform>(*selected_entity);
+            ImGui::InputFloat3("Translation", glm::value_ptr(transform.position));
+            ImGui::InputFloat3("Rotation", glm::value_ptr(transform.euler_angles));
+            ImGui::InputFloat3("Scale", glm::value_ptr(transform.scale));
+            ImGui::TreePop();
+          }
+        }
+        if (registry.has<Components::Camera>(*selected_entity)) {
+          if (ImGui::TreeNode("Camera Component")) {
+            auto& camera = registry.get<Components::Camera>(*selected_entity);
+            float fov = glm::degrees(camera.fov_y);
+            ImGui::InputFloat("Vertical of view", &fov, 0.0f, 0.0f, "%.3f°");
+            camera.fov_y = glm::radians(fov);
+            ImGui::InputFloat("Near Plane", &camera.near);
+            ImGui::InputFloat("Far Plane", &camera.far);
+            ImGui::TreePop();
+          }
+        }
         if (registry.has<Components::Mesh>(*selected_entity)) {
           if (ImGui::TreeNode("Mesh Component")) {
-            auto mesh = registry.get<Components::Mesh>(*selected_entity);
+            auto& mesh = registry.get<Components::Mesh>(*selected_entity);
             ImGui::Text("Name: %s", resource_manager.mesh_cache().handle(mesh.id)->name.c_str());
             ImGui::TreePop();
           }
         }
         if (registry.has<Components::Armature>(*selected_entity)) {
           if (ImGui::TreeNode("Armature Component")) {
-            auto armature = registry.get<Components::Armature>(*selected_entity);
+            auto& armature = registry.get<Components::Armature>(*selected_entity);
             char matrix_name[256];
             uint32_t i = 0;
             for (auto& joint : armature.joints) {
@@ -290,7 +317,7 @@ Ui::run(const Window& window,
         }
         if (registry.has<Components::Animation>(*selected_entity)) {
           if (ImGui::TreeNode("Animation Component")) {
-            auto animation = registry.get<Components::Animation>(*selected_entity);
+            auto& animation = registry.get<Components::Animation>(*selected_entity);
             ImGui::Text("Name: %s",
                         resource_manager.animation_cache().handle(animation.id)->name.c_str());
             ImGui::TreePop();

@@ -3,6 +3,8 @@
 #include <iostream>
 #include <string>
 
+#include <SDL_events.h>
+#include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <glm/trigonometric.hpp>
 
@@ -17,17 +19,108 @@ Scene::create()
 }
 
 Scene::Scene()
-  : default_camera_(glm::vec3{ 0.0f, 1.0f, 3.0f }, 0, 0, glm::radians(80.0f))
-{}
+{
+  auto camera_entity = registry_.create();
+  registry_.emplace<Components::Camera>(camera_entity, Scene::default_camera());
+  registry_.emplace<Components::Transform>(camera_entity, glm::vec3(0), glm::vec3(0), glm::vec3(1));
+}
 Scene::~Scene() = default;
 
 void
 Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
 {
-  if (cameras_.empty() || active_camera_ > cameras_.size()) {
-    default_camera_.process_event(event, dt);
+  const auto cameras = registry_.view<Components::Camera, Components::Transform>();
+  if (!cameras.empty()) {
+    auto camera_entity = cameras.front();
+    auto& transform = registry_.get<Components::Transform>(camera_entity);
+
+    float speed = 0.00001f * dt.count();
+    switch (event.type) {
+      case SDL_JOYAXISMOTION: {
+        speed *= 0.0025f;
+        switch (event.jaxis.axis) {
+          // Translate x
+          case 0:
+            transform.position +=
+              static_cast<float>(event.jaxis.value * speed * M_PI) *
+              glm::vec3(glm::eulerAngleXY(transform.euler_angles.x, -transform.euler_angles.y) *
+                        glm::vec4(1, 0, 0, 0));
+            break;
+            // Translate y
+          case 1:
+            transform.position +=
+              static_cast<float>(event.jaxis.value * speed * M_PI) *
+              glm::vec3(glm::eulerAngleXY(transform.euler_angles.x, -transform.euler_angles.y) *
+                        glm::vec4(0, 1, 0, 0));
+            break;
+            // Translate z
+          case 2:
+            transform.position +=
+              static_cast<float>(event.jaxis.value * speed * M_PI) *
+              glm::vec3(glm::eulerAngleXY(transform.euler_angles.x, -transform.euler_angles.y) *
+                        glm::vec4(0, 0, -1, 0));
+            break;
+            // Rotate x
+          case 3:
+            transform.euler_angles.x += speed * event.jaxis.value;
+            break;
+            // Rotate y
+          case 4:
+            transform.euler_angles.y += speed * event.jaxis.value;
+            break;
+        }
+      } break;
+      case SDL_KEYDOWN: {
+        if (event.key.keysym.mod & KMOD_SHIFT) {
+          speed *= 5.0f;
+        } else if (event.key.keysym.mod & KMOD_CTRL) {
+          speed *= 0.2f;
+        }
+        switch (event.key.keysym.sym) {
+          case SDLK_w: {
+            transform.position += speed * glm::vec3(glm::eulerAngleXY(transform.euler_angles.x,
+                                                                      -transform.euler_angles.y) *
+                                                    glm::vec4(0, 0, -1, 0));
+          } break;
+          case SDLK_s: {
+            transform.position += speed * glm::vec3(glm::eulerAngleXY(transform.euler_angles.x,
+                                                                      -transform.euler_angles.y) *
+                                                    glm::vec4(0, 0, 1, 0));
+          } break;
+          case SDLK_e:
+            transform.position.y += speed;
+            break;
+          case SDLK_q:
+            transform.position.y -= speed;
+            break;
+          case SDLK_a: {
+            transform.position += speed * glm::vec3(glm::eulerAngleXY(transform.euler_angles.x,
+                                                                      -transform.euler_angles.y) *
+                                                    glm::vec4(-1, 0, 0, 0));
+          } break;
+          case SDLK_d: {
+            transform.position += speed * glm::vec3(glm::eulerAngleXY(transform.euler_angles.x,
+                                                                      -transform.euler_angles.y) *
+                                                    glm::vec4(1, 0, 0, 0));
+          } break;
+          case SDLK_UP:
+            transform.euler_angles.x -= speed;
+            break;
+          case SDLK_DOWN:
+            transform.euler_angles.x += speed;
+            break;
+
+          case SDLK_LEFT: {
+            transform.euler_angles.y -= speed;
+          } break;
+          case SDLK_RIGHT: {
+            transform.euler_angles.y += speed;
+          } break;
+        }
+      }
+    }
   } else {
-    cameras_[active_camera_].process_event(event, dt);
+    assert(false);
   }
 }
 
@@ -77,21 +170,6 @@ Scene::add_mesh(ENTT_ID_TYPE id,
   registry_.emplace<Components::Armature>(entity, armature);
 }
 
-void
-Scene::run(ResourceManager& resource_manager)
-{
-  // calc_bone_trans_rots(resource_manager);
-}
-
-const Camera&
-Scene::active_camera() const
-{
-  if (cameras_.empty() || active_camera_ > cameras_.size()) {
-    return default_camera_;
-  }
-  return cameras_[active_camera_];
-}
-
 entt::registry&
 Scene::registry()
 {
@@ -102,4 +180,14 @@ const entt::registry&
 Scene::registry() const
 {
   return registry_;
+}
+
+Components::Camera
+Scene::default_camera()
+{
+  return Components::Camera{
+    .fov_y = glm::radians(80.0f),
+    .near = 1.0f,
+    .far = 1000.0f,
+  };
 }

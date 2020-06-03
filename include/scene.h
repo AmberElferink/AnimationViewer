@@ -6,8 +6,8 @@
 
 #include <entt/core/hashed_string.hpp>
 #include <entt/entity/registry.hpp>
-
-#include "camera.h"
+#include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
 
 union SDL_Event;
 
@@ -15,6 +15,18 @@ namespace AnimationViewer {
 class ResourceManager;
 
 namespace Components {
+struct Transform
+{
+  glm::vec3 position;
+  glm::vec3 euler_angles;
+  glm::vec3 scale;
+};
+struct Camera
+{
+  float fov_y;
+  float near;
+  float far;
+};
 struct Mesh
 {
   ENTT_ID_TYPE id;
@@ -42,25 +54,17 @@ public:
                 const glm::ivec2& screen_space_position,
                 AnimationViewer::ResourceManager& resource_manager);
 
-  void run(ResourceManager& resource_manager);
-
   /// A scene can have any number of cameras including zero
   /// This returns the camera selected for rendering or a default camera
   /// if there are no cameras in the scene.
-  const Camera& active_camera() const;
   entt::registry& registry();
   const entt::registry& registry() const;
+  static Components::Camera default_camera();
 
 protected:
   Scene();
 
 private:
-  /// Default read-only camera used only if there is no camera in the scene
-  /// selected
-  Camera default_camera_;
-  uint32_t active_camera_;
-  std::vector<Camera> cameras_;
-
-  mutable entt::registry registry_;
+  entt::registry registry_;
 };
 } // namespace AnimationViewer
