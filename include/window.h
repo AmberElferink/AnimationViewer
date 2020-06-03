@@ -9,6 +9,11 @@ struct SDL_Window;
 namespace AnimationViewer {
 class Window
 {
+  struct SDLDestroyer
+  {
+    void operator()(SDL_Window* window) const;
+  };
+
 public:
   static std::unique_ptr<Window> create(const std::string& name, uint16_t width, uint16_t height);
 
@@ -21,6 +26,6 @@ protected:
   explicit Window(SDL_Window* const handle);
 
 private:
-  SDL_Window* const handle_;
+  std::unique_ptr<SDL_Window, SDLDestroyer> handle_;
 };
 } // namespace AnimationViewer

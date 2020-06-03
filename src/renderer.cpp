@@ -47,15 +47,20 @@ MessageCallback([[maybe_unused]] GLenum source,
     return;
   }
   static constexpr std::array<std::string_view, GL_DEBUG_TYPE_OTHER - GL_DEBUG_TYPE_ERROR + 1>
-    type_look_up{
-      "ERROR", "DEPRECATED_BEHAVIOR", "UNDEFINED_BEHAVIOR", "PORTABILITY", "PERFORMANCE", "OTHER",
-    };
+    type_look_up{ {
+      "ERROR",
+      "DEPRECATED_BEHAVIOR",
+      "UNDEFINED_BEHAVIOR",
+      "PORTABILITY",
+      "PERFORMANCE",
+      "OTHER",
+    } };
   static constexpr std::array<std::string_view, GL_DEBUG_SEVERITY_LOW - GL_DEBUG_SEVERITY_HIGH + 1>
-    severity_look_up{
+    severity_look_up{ {
       "HIGH",
       "MEDIUM",
       "LOW",
-    };
+    } };
   auto type_string = (type >= GL_DEBUG_TYPE_ERROR && type <= GL_DEBUG_TYPE_OTHER)
                        ? type_look_up[type - GL_DEBUG_TYPE_ERROR]
                        : "UNKNOWN";
@@ -93,7 +98,7 @@ Renderer::Renderer(SDL_Window* window)
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-  context_ = SDL_GL_CreateContext(window);
+  context_ = std::unique_ptr<void, SDLDestroyer>(SDL_GL_CreateContext(window));
   if (context_) {
     gladLoadGLES2Loader(SDL_GL_GetProcAddress);
 
@@ -109,10 +114,13 @@ Renderer::Renderer(SDL_Window* window)
   }
 }
 
-Renderer::~Renderer()
+void
+Renderer::SDLDestroyer::operator()(SDL_GLContext context) const
 {
-  SDL_GL_DeleteContext(context_);
+  SDL_GL_DeleteContext(context);
 }
+
+Renderer::~Renderer() = default;
 
 void
 Renderer::render(const Scene& scene,
@@ -222,8 +230,10 @@ Renderer::upload_mesh(const std::vector<vertex_t>& vertices, const std::vector<u
                              indices.size());
 }
 
-void* Renderer::context_handle() {
-  return context_;
+void*
+Renderer::context_handle()
+{
+  return context_.get();
 }
 
 void
@@ -240,6 +250,7 @@ Renderer::create_pipeline()
       .fragment_shader_entry_point = "main",
       .winding_order = Pipeline::TriangleWindingOrder::CounterClockwise,
       .depth_write = false,
+      .depth_test = Pipeline::DepthTest::Less,
     };
     rayleigh_sky_pipeline_ = Pipeline::create(Pipeline::Type::RasterOpenGL, info);
     rayleigh_sky_uniform_buffer_ = Buffer::create(sizeof(sky_uniform_t));

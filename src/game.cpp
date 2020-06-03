@@ -85,8 +85,8 @@ Game::main_loop()
   uint16_t width, height;
   window_->get_dimensions(width, height);
   renderer_->set_back_buffer_size(width, height);
-  input_->run(*ui_, *scene_, *resource_manager_, delta_time);
-  ui_->run(*scene_, *resource_manager_, renderer_metrics_, delta_time);
+  input_->run(*window_, *ui_, *scene_, *resource_manager_, delta_time);
+  ui_->run(*window_, *scene_, *resource_manager_, renderer_metrics_, delta_time);
 
   scene_->run(*resource_manager_);
 

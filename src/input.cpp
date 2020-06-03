@@ -9,7 +9,7 @@
 #include "scene.h"
 #include "ui.h"
 
-using namespace AnimationViewer;
+using AnimationViewer::Input;
 
 #if USE_SPNAV
 #include <spnav.h>
@@ -24,16 +24,16 @@ extern "C"
   animation_viewer_ui_load_file_contents(Input* input,
                                          const char* file_name,
                                          const uint8_t* contents,
-                                         size_t size)
+                                         size_t size_)
   {
     FILE* file = fopen(file_name, "wb");
-    fwrite(contents, size, size, file);
+    fwrite(contents, size_, size_, file);
     fclose(file);
     SDL_Event event = {};
     event.type = SDL_DROPFILE;
     event.drop.timestamp = SDL_GetTicks();
-    event.drop.file = (char*)SDL_malloc(size);
-    memcpy(event.drop.file, file_name, size);
+    event.drop.file = (char*)SDL_malloc(size_);
+    memcpy(event.drop.file, file_name, size_);
     SDL_PushEvent(&event);
   }
 }
@@ -114,7 +114,11 @@ Input::~Input()
 }
 
 void
-Input::run(Ui& ui, Scene& scene, ResourceManager& resource_manager, std::chrono::microseconds& dt)
+Input::run(const Window& window,
+           Ui& ui,
+           Scene& scene,
+           ResourceManager& resource_manager,
+           std::chrono::microseconds& dt)
 {
   SDL_Event event;
 
@@ -195,7 +199,7 @@ Input::run(Ui& ui, Scene& scene, ResourceManager& resource_manager, std::chrono:
 #endif
 
   while (SDL_PollEvent(&event)) {
-    if (!ui.process_event(event)) {
+    if (!ui.process_event(window, event)) {
       quit_ = true;
     }
     scene.process_event(event, dt);

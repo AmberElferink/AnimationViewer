@@ -85,12 +85,12 @@ private:
           uint32_t height,
           Format format);
 
-  const uint32_t native_texture;
-  const uint32_t native_sampler;
+  const uint32_t native_texture_;
+  const uint32_t native_sampler_;
 
-  const uint32_t width;
-  const uint32_t height;
-  const Format format;
+  const uint32_t width_;
+  const uint32_t height_;
+  const Format format_;
 
   friend struct Framebuffer;
 };

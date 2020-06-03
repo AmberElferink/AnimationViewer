@@ -20,29 +20,29 @@ namespace openblack::l3d
 template <typename N>
 class Span
 {
-	const std::vector<N>& original;
-	const uint32_t start;
-	const uint32_t length;
+	const std::vector<N>& original_;
+	const uint32_t start_;
+	const uint32_t length_;
 
 public:
 	Span(std::vector<N>& original, uint32_t start, uint32_t length)
-	    : original(original)
-	    , start(start)
-	    , length(length)
+	    : original_(original)
+	    , start_(start)
+	    , length_(length)
 	{
 	}
 
-	const N* data() const noexcept { return original.data() + start; }
+	const N* data() const noexcept { return original_.data() + start_; }
 
 	typename std::vector<N>::const_reference operator[](typename std::vector<N>::size_type index) const noexcept
 	{
-		return original[index + start];
+		return original_[index + start_];
 	}
 
-	constexpr typename std::vector<N>::size_type size() const noexcept { return length; }
+	constexpr typename std::vector<N>::size_type size() const noexcept { return length_; }
 
 	// First element.
-	constexpr typename std::vector<N>::const_iterator begin() const noexcept { return original.begin() + start; }
+	constexpr typename std::vector<N>::const_iterator begin() const noexcept { return original_.begin() + start_; }
 
 	// One past the last element.
 	constexpr typename std::vector<N>::const_iterator end() const noexcept { return begin() + size(); }

@@ -17,34 +17,34 @@ Buffer::create(uint32_t size)
 }
 
 Buffer::Buffer(uint32_t native_handle, uint32_t size)
-  : native_handle(native_handle)
-  , size(size)
+  : native_handle_(native_handle)
+  , size_(size)
 {}
 
 Buffer::~Buffer()
 {
-  glDeleteBuffers(1, &native_handle);
+  glDeleteBuffers(1, &native_handle_);
 }
 
 void
 Buffer::set_debug_name([[maybe_unused]] const std::string& name) const
 {
 #if !__EMSCRIPTEN__
-  glObjectLabel(GL_BUFFER, native_handle, -1, name.c_str());
+  glObjectLabel(GL_BUFFER, native_handle_, -1, name.c_str());
 #endif
 }
 
 void
 Buffer::bind(uint32_t index) const
 {
-  glBindBuffer(GL_UNIFORM_BUFFER, native_handle);
-  glBindBufferBase(GL_UNIFORM_BUFFER, index, native_handle);
+  glBindBuffer(GL_UNIFORM_BUFFER, native_handle_);
+  glBindBufferBase(GL_UNIFORM_BUFFER, index, native_handle_);
 }
 
 void
-Buffer::upload(const void* data, [[maybe_unused]] uint32_t _size) const
+Buffer::upload(const void* data, [[maybe_unused]] uint32_t size) const
 {
-  assert(this->size == _size);
-  glBindBuffer(GL_UNIFORM_BUFFER, native_handle);
-  glBufferSubData(GL_UNIFORM_BUFFER, 0, size, data);
+  assert(size_ == size);
+  glBindBuffer(GL_UNIFORM_BUFFER, native_handle_);
+  glBufferSubData(GL_UNIFORM_BUFFER, 0, size_, data);
 }

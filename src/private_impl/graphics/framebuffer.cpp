@@ -22,7 +22,7 @@ AnimationViewer::Graphics::Framebuffer::create(const std::unique_ptr<Texture>* t
 
   for (uint8_t i = 0; i < size; ++i) {
     glFramebufferTexture2D(
-      GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, textures[i]->native_texture, 0);
+      GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, textures[i]->native_texture_, 0);
     bufs[i] = GL_COLOR_ATTACHMENT0 + i;
   }
   glDrawBuffers(static_cast<GLsizei>(bufs.size()), bufs.data());
@@ -36,23 +36,22 @@ Framebuffer::default_framebuffer()
   return std::unique_ptr<Framebuffer>(new Framebuffer(0, 0));
 }
 
-Framebuffer::Framebuffer(uint32_t native_handle,
-                         uint8_t size)
-  : native_handle(native_handle)
-  , size(size)
+Framebuffer::Framebuffer(uint32_t native_handle, uint8_t size)
+  : native_handle_(native_handle)
+  , size_(size)
 {}
 
 Framebuffer::~Framebuffer()
 {
-  if (native_handle > 0) {
-    glDeleteFramebuffers(1, &native_handle);
+  if (native_handle_ > 0) {
+    glDeleteFramebuffers(1, &native_handle_);
   }
 }
 
 void
 Framebuffer::clear(const std::vector<glm::vec4>& color, const std::vector<float>& depth) const
 {
-  assert(color.size() == size || native_handle == 0);
+  assert(color.size() == size_ || native_handle_ == 0);
   bind();
   for (uint8_t i = 0; i < color.size(); ++i) {
     glClearBufferfv(GL_COLOR, i, reinterpret_cast<const GLfloat*>(&color[i]));
@@ -65,5 +64,5 @@ Framebuffer::clear(const std::vector<glm::vec4>& color, const std::vector<float>
 void
 Framebuffer::bind() const
 {
-  glBindFramebuffer(GL_FRAMEBUFFER, native_handle);
+  glBindFramebuffer(GL_FRAMEBUFFER, native_handle_);
 }

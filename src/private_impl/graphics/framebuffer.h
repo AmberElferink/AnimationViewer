@@ -22,7 +22,7 @@ struct Framebuffer
 private:
   Framebuffer(uint32_t native_handle, uint8_t size);
 
-  const uint32_t native_handle;
-  [[maybe_unused]] const uint8_t size;
+  const uint32_t native_handle_;
+  const uint8_t size_;
 };
 } // namespace AnimationViewer::Graphics

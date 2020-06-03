@@ -13,11 +13,11 @@ struct IndexedMesh
     uint32_t type;
     uint32_t count;
   };
-  const uint32_t vertex_buffer;
-  const uint32_t index_buffer;
-  const uint32_t vao;
-  const std::vector<MeshAttributes> attributes;
-  const uint16_t element_count;
+  const uint32_t vertex_buffer_;
+  const uint32_t index_buffer_;
+  const uint32_t vao_;
+  const std::vector<MeshAttributes> attributes_;
+  const uint16_t element_count_;
 
   static std::unique_ptr<IndexedMesh> create(const std::vector<MeshAttributes>& attributes,
                                              const void* vertices,

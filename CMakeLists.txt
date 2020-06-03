@@ -128,7 +128,7 @@ target_include_directories(AnimationViewerLib
   # Compiled shaders
   ${CMAKE_CURRENT_BINARY_DIR}/src)
 target_link_libraries(AnimationViewerLib PRIVATE ${LIBRARIES} l3d anm)
-target_compile_definitions(AnimationViewerLib PRIVATE SDL_MAIN_HANDLED)
+target_compile_definitions(AnimationViewerLib PRIVATE SDL_MAIN_HANDLED SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS)
 if(MSVC)
   target_compile_options(AnimationViewerLib
     PUBLIC
@@ -170,7 +170,6 @@ else()
     -pedantic-errors
 
     -Wcomment
-    -Wimplicit
     -Wimport
     -Winline
     -Wparentheses
@@ -179,7 +178,7 @@ else()
     -Wstrict-aliasing
     -Wstrict-aliasing=2
     -Wswitch
-    -Wswitch-default
+    # -Wswitch-default
     -Wswitch-enum
     -Wuninitialized
     -Wmissing-braces
@@ -207,9 +206,9 @@ else()
     -Wdisabled-optimization
     -Winit-self
     -Winvalid-pch
-    -Wlong-long
-    -Weffc++
-    -Waggregate-return
+    #-Wlong-long
+    #-Weffc++
+    #-Waggregate-return
     -Wchar-subscripts
 
     # -Wcast-align

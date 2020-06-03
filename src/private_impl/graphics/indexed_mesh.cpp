@@ -146,38 +146,38 @@ IndexedMesh::IndexedMesh(uint32_t vertex_buffer,
                          std::vector<MeshAttributes> attributes,
                          uint16_t element_count)
 
-  : vertex_buffer(vertex_buffer)
-  , index_buffer(index_buffer)
-  , vao(vao)
-  , attributes(std::move(attributes))
-  , element_count(element_count)
+  : vertex_buffer_(vertex_buffer)
+  , index_buffer_(index_buffer)
+  , vao_(vao)
+  , attributes_(std::move(attributes))
+  , element_count_(element_count)
 {}
 
 IndexedMesh::~IndexedMesh()
 {
   glDeleteBuffers(2, reinterpret_cast<uint32_t*>(this));
-  glDeleteVertexArrays(1, &vao);
+  glDeleteVertexArrays(1, &vao_);
 }
 
 void
 IndexedMesh::draw() const
 {
   bind();
-  glDrawElements(GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, nullptr);
+  glDrawElements(GL_TRIANGLES, element_count_, GL_UNSIGNED_SHORT, nullptr);
 }
 
 void
 IndexedMesh::bind() const
 {
-  glBindVertexArray(vao);
-  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+  glBindVertexArray(vao_);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_);
 
   uint32_t total_stride = 0;
   std::vector<uint32_t> offsets;
-  offsets.reserve(attributes.size());
+  offsets.reserve(attributes_.size());
   uint32_t attr_index = 0;
-  for (auto& attr : attributes) {
+  for (auto& attr : attributes_) {
     auto size = attr.count;
     switch (attr.type) {
       case GL_FLOAT:
@@ -204,8 +204,8 @@ IndexedMesh::bind() const
 
   for (uint32_t i = 0; i < offsets.size(); ++i) {
     glVertexAttribPointer(i,
-                          attributes[i].count,
-                          attributes[i].type,
+                          attributes_[i].count,
+                          attributes_[i].type,
                           GL_FALSE,
                           total_stride,
                           reinterpret_cast<const void*>(offsets[i]));

@@ -12,8 +12,9 @@
 
 #include "resource.h"
 #include "scene.h"
+#include "window.h"
 
-using namespace AnimationViewer;
+using AnimationViewer::Ui;
 
 std::unique_ptr<Ui>
 Ui::create(SDL_Window* const window, void* gl_context)
@@ -54,8 +55,7 @@ Ui::create(SDL_Window* const window, void* gl_context)
 }
 
 Ui::Ui(SDL_Window* const window, ImGuiContext* const context)
-  : window_(window)
-  , context_(context)
+  : context_(context)
   , show_statistics_(false)
   , show_assets_(true)
   , show_scene_(true)
@@ -63,21 +63,27 @@ Ui::Ui(SDL_Window* const window, ImGuiContext* const context)
   , scene_window_hovered_(false)
 {}
 
+void
+Ui::ImGuiDestroyer::operator()(ImGuiContext* context) const
+{
+  ImGui::DestroyContext(context);
+}
+
 Ui::~Ui()
 {
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplSDL2_Shutdown();
-  ImGui::DestroyContext(context_);
 }
 
 void
-Ui::run(Scene& scene,
+Ui::run(const Window& window,
+        Scene& scene,
         ResourceManager& resource_manager,
         const std::vector<std::pair<std::string, float>>& renderer_metrics,
         std::chrono::microseconds& dt)
 {
   ImGui_ImplOpenGL3_NewFrame();
-  ImGui_ImplSDL2_NewFrame(window_);
+  ImGui_ImplSDL2_NewFrame(window.get_native_handle());
   ImGui::NewFrame();
 
   ImGui::DockSpaceOverViewport(nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
@@ -149,8 +155,7 @@ Ui::run(Scene& scene,
           }
           if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
             ImGui::SetDragDropPayload("DND_MESH", &id, sizeof(id));
-            ImGui::Text("Mesh: %s",
-                        resource_manager.mesh_cache().handle(id)->name.c_str());
+            ImGui::Text("Mesh: %s", resource_manager.mesh_cache().handle(id)->name.c_str());
             ImGui::EndDragDropSource();
           }
         });
@@ -314,11 +319,11 @@ Ui::draw() const
 }
 
 bool
-Ui::process_event(const SDL_Event& event)
+Ui::process_event(const Window& window, const SDL_Event& event)
 {
   ImGui_ImplSDL2_ProcessEvent(&event);
   if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE &&
-      event.window.windowID == SDL_GetWindowID(window_)) {
+      event.window.windowID == SDL_GetWindowID(window.get_native_handle())) {
     return false;
   }
   return true;

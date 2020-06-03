@@ -63,9 +63,9 @@ Texture::load_from_gltf_image(const tinygltf::Image& image)
 }
 
 Texture::Texture(uint32_t width, uint32_t height, std::vector<glm::vec3>&& data)
-  : width(width)
-  , height(height)
-  , data(data)
+  : width_(width)
+  , height_(height)
+  , data_(data)
 {}
 
 Texture::~Texture() = default;
@@ -73,8 +73,9 @@ Texture::~Texture() = default;
 const glm::vec3&
 Texture::sample(const glm::vec3& texture_coordinates) const
 {
-  uint32_t x = static_cast<uint32_t>(texture_coordinates.x * (width - 0.0001)) % width;
+  uint32_t x = static_cast<uint32_t>(texture_coordinates.x * (width_ - 0.0001)) % width_;
   uint32_t y =
-    static_cast<uint32_t>((1.0f - fmod(texture_coordinates.y, 1.0f)) * (height - 0.0001)) % height;
-  return data[(x + y * width)];
+    static_cast<uint32_t>((1.0f - fmod(texture_coordinates.y, 1.0f)) * (height_ - 0.0001)) %
+    height_;
+  return data_[(x + y * width_)];
 }

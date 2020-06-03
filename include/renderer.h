@@ -24,6 +24,11 @@ class Pipeline;
 
 class Renderer
 {
+  struct SDLDestroyer
+  {
+    void operator()(SDL_GLContext context) const;
+  };
+
 public:
   /// Factory function from which all types of renderers can be created
   static std::unique_ptr<Renderer> create(SDL_Window* window);
@@ -45,7 +50,7 @@ private:
   void create_geometry();
   void create_pipeline();
 
-  SDL_GLContext context_;
+  std::unique_ptr<void, SDLDestroyer> context_;
   uint16_t width_;
   uint16_t height_;
   std::unique_ptr<Framebuffer> back_buffer_;

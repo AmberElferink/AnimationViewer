@@ -24,8 +24,8 @@ public:
 private:
   Texture(uint32_t width, uint32_t height, std::vector<glm::vec3>&& data);
 
-  const uint32_t width;
-  const uint32_t height;
-  const std::vector<glm::vec3> data;
+  const uint32_t width_;
+  const uint32_t height_;
+  const std::vector<glm::vec3> data_;
 };
 } // namespace AnimationViewer

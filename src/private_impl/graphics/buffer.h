@@ -20,7 +20,7 @@ protected:
   Buffer(uint32_t size, uint32_t native_handle);
 
 private:
-  const uint32_t native_handle;
-  const uint32_t size;
+  const uint32_t native_handle_;
+  const uint32_t size_;
 };
 } // namespace AnimationViewer::Graphics

@@ -7,6 +7,7 @@ namespace AnimationViewer {
 class ResourceManager;
 class Scene;
 class Ui;
+class Window;
 
 class Input
 {
@@ -14,7 +15,11 @@ public:
   static std::unique_ptr<Input> create();
 
   virtual ~Input();
-  void run(Ui& ui, Scene& scene, ResourceManager& resource_manager, std::chrono::microseconds& dt);
+  void run(const Window& window,
+           Ui& ui,
+           Scene& scene,
+           ResourceManager& resource_manager,
+           std::chrono::microseconds& dt);
   bool should_quit() const;
 
 protected:

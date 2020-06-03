@@ -14,7 +14,7 @@ struct TextureFormatLookUp
   const uint8_t size;
 };
 
-std::array<TextureFormatLookUp, 40> TextureFormatLookUpTable = {
+constexpr std::array<TextureFormatLookUp, 40> TextureFormatLookUpTable = { {
   /* r_snorm  */ TextureFormatLookUp{ GL_RED, GL_R8_SNORM, GL_BYTE, 1 },
   /* rg_snorm  */ TextureFormatLookUp{ GL_RG, GL_RG8_SNORM, GL_BYTE, 2 },
   /* rgb_snorm  */
@@ -77,12 +77,12 @@ std::array<TextureFormatLookUp, 40> TextureFormatLookUpTable = {
   TextureFormatLookUp{ GL_RGB_INTEGER, GL_RGB32UI, GL_UNSIGNED_INT, 12 },
   /* rgba32u */
   TextureFormatLookUp{ GL_RGBA_INTEGER, GL_RGBA32UI, GL_UNSIGNED_INT, 16 },
-};
+} };
 
-std::array<uint32_t, 2> TextureFilterLookUpTable = {
+constexpr std::array<uint32_t, 2> TextureFilterLookUpTable = { {
   /* linear  */ GL_LINEAR,
   /* nearest */ GL_NEAREST,
-};
+} };
 
 using namespace AnimationViewer::Graphics;
 
@@ -130,25 +130,25 @@ Texture::Texture(uint32_t native_texture,
                  uint32_t width,
                  uint32_t height,
                  Format format)
-  : native_texture(native_texture)
-  , native_sampler(native_sampler)
-  , width(width)
-  , height(height)
-  , format(format)
+  : native_texture_(native_texture)
+  , native_sampler_(native_sampler)
+  , width_(width)
+  , height_(height)
+  , format_(format)
 {}
 
 Texture::~Texture()
 {
-  glDeleteTextures(1, &native_texture);
-  glDeleteSamplers(1, &native_sampler);
+  glDeleteTextures(1, &native_texture_);
+  glDeleteSamplers(1, &native_sampler_);
 }
 
 void
 Texture::set_debug_name([[maybe_unused]] const std::string& name) const
 {
 #if !__EMSCRIPTEN__
-  glObjectLabel(GL_TEXTURE, native_texture, -1, (name + " texture").c_str());
-  glObjectLabel(GL_SAMPLER, native_sampler, -1, (name + " sampler").c_str());
+  glObjectLabel(GL_TEXTURE, native_texture_, -1, (name + " texture").c_str());
+  glObjectLabel(GL_SAMPLER, native_sampler_, -1, (name + " sampler").c_str());
 #endif
 }
 
@@ -156,21 +156,21 @@ void
 Texture::bind(uint32_t slot) const
 {
   glActiveTexture(GL_TEXTURE0 + slot);
-  glBindTexture(GL_TEXTURE_2D, native_texture);
-  glBindSampler(slot, native_sampler);
+  glBindTexture(GL_TEXTURE_2D, native_texture_);
+  glBindSampler(slot, native_sampler_);
 }
 
 void
 Texture::upload(const void* data, [[maybe_unused]] uint32_t size) const
 {
-  auto gl_format = TextureFormatLookUpTable[static_cast<uint32_t>(format)];
-  assert(size == width * height * gl_format.size);
-  glBindTexture(GL_TEXTURE_2D, native_texture);
-  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, gl_format.format, gl_format.type, data);
+  auto gl_format = TextureFormatLookUpTable[static_cast<uint32_t>(format_)];
+  assert(size == width_ * height_ * gl_format.size);
+  glBindTexture(GL_TEXTURE_2D, native_texture_);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width_, height_, gl_format.format, gl_format.type, data);
 }
 
 uintptr_t
 Texture::get_native_handle() const
 {
-  return native_texture;
+  return native_texture_;
 }
