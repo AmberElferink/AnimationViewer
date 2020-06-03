@@ -23,6 +23,9 @@ Scene::Scene()
   auto camera_entity = registry_.create();
   registry_.emplace<Components::Camera>(camera_entity, Scene::default_camera());
   registry_.emplace<Components::Transform>(camera_entity, glm::vec3(0), glm::vec3(0), glm::vec3(1));
+
+  auto sky_entity = registry_.create();
+  registry_.emplace<Components::Sky>(sky_entity, glm::vec3(0, 1, 0));
 }
 Scene::~Scene() = default;
 

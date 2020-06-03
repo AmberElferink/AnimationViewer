@@ -148,7 +148,13 @@ Renderer::render(const Scene& scene,
   } else {
     assert(false);
   }
+
+  const auto skies = scene.registry().view<const Components::Sky>();
   vec3 direction_to_sun = glm::vec3(0, 1, 0);
+  if (!cameras.empty()) {
+    auto sky = skies.get<const Components::Sky>(skies.front());
+    direction_to_sun = sky.direction_to_sun;
+  }
 
   // clearing screen with a color which should never be seen
   back_buffer_->clear({ clear_color }, { 1.0f });

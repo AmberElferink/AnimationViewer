@@ -212,6 +212,8 @@ Ui::run(const Window& window,
         [&i, &scene, &entity_name, &component_type](const entt::entity& entity) {
           if (scene.registry().has<Components::Camera>(entity)) {
             component_type = " (Camera)";
+          } else if (scene.registry().has<Components::Sky>(entity)) {
+            component_type = " (Sky)";
           } else if (scene.registry().has<Components::Mesh>(entity)) {
             component_type = " (Mesh)";
           }
@@ -273,6 +275,17 @@ Ui::run(const Window& window,
                                 "%.3f°");
             transform.orientation = glm::radians(euler_angles);
             ImGui::InputFloat3("Scale", glm::value_ptr(transform.scale));
+            ImGui::TreePop();
+          }
+        }
+
+        if (registry.has<Components::Sky>(*selected_entity)) {
+          if (ImGui::TreeNode("Sky Component")) {
+            auto& sky = registry.get<Components::Sky>(*selected_entity);
+            ImGui::gizmo3D("##direction_to_sun", sky.direction_to_sun);
+
+            ImGui::InputFloat3("Direction To Sun", glm::value_ptr(sky.direction_to_sun));
+            sky.direction_to_sun = glm::normalize(sky.direction_to_sun);
             ImGui::TreePop();
           }
         }

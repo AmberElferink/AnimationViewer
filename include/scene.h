@@ -27,6 +27,10 @@ struct Camera
   float near;
   float far;
 };
+struct Sky
+{
+  glm::vec3 direction_to_sun;
+};
 struct Mesh
 {
   ENTT_ID_TYPE id;
