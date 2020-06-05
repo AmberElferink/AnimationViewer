@@ -236,7 +236,9 @@ Renderer::set_back_buffer_size(uint16_t w, uint16_t h)
 
 void
 Renderer::rebuild_back_buffers()
-{}
+{
+  glViewport(0, 0, width_, height_);
+}
 
 void
 Renderer::create_geometry()
