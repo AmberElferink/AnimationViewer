@@ -46,15 +46,10 @@ struct Mesh
   std::unique_ptr<Graphics::IndexedMesh> gpu_resource;
 };
 
-struct AnimationBone
-{
-    float matrix[12];
-};
-
 struct AnimationFrame
 {
     uint32_t time;
-    std::vector<AnimationBone> bones; //bones trans_rot (no bottom row)
+    std::vector<glm::mat4> bones; //bones trans_rot (no bottom row)
 };
 
 struct Animation

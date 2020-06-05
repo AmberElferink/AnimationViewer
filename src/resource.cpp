@@ -2,6 +2,8 @@
 
 #include <ANMFile.h>
 #include <L3DFile.h>
+#include <glm/matrix.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include "renderer.h"
 
@@ -126,9 +128,8 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
 
         for (auto bone : frames[i].bones)
         {
-            Resource::AnimationBone animation_bone;
-            std::copy(std::begin(bone.matrix), std::end(bone.matrix), std::begin(animation_bone.matrix));
-            frame.bones.push_back(animation_bone);
+            glm::mat4x3 bone4x3mat = glm::make_mat4x3(bone.matrix);
+            frame.bones.emplace_back(glm::transpose(bone4x3mat));
         }
         frame.time = frames[i].time;
         animation->keyframes.push_back(frame);

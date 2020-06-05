@@ -200,12 +200,29 @@ Renderer::render(const Scene& scene,
 
       // Get the Armature component of the entity
       if (scene.registry().has<Components::Armature>(entity)) {
-        const auto &armature = scene.registry().get<Components::Armature>(entity);
-        const std::vector<glm::mat4>& bone_trans_rots = armature.joints;
-        memcpy(mesh_vertex_uniform.bone_trans_rots,
-               bone_trans_rots.data(),
-               bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
-      } else {
+          const auto& armature = scene.registry().get<Components::Armature>(entity);
+          
+          if (scene.registry().has<Components::Animation>(entity))
+          {
+              const auto& animation = scene.registry().get<Components::Animation>(entity); 
+              const auto animation_resource = resource_manager.animation_cache().handle(animation.id);
+
+              assert(animation_resource->keyframes[0].bones.size() == armature.joints.size());
+
+              //const std::vector<glm::mat4>& bone_trans_rots = animation_resource->keyframes[animation.current_frame].bones
+              //memcpy(mesh_vertex_uniform.bone_trans_rots,
+              //    bone_trans_rots.data(),
+              //    bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
+          }
+          else // if there is no animation, load default bone mat
+          {
+              const std::vector<glm::mat4>& bone_trans_rots = armature.joints;
+              memcpy(mesh_vertex_uniform.bone_trans_rots,
+                  bone_trans_rots.data(),
+                  bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
+          }
+      } 
+      else {
         mesh_vertex_uniform.bone_trans_rots[0] = glm::mat4(1.0f);
       }
 
