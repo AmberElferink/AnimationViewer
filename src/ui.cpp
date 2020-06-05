@@ -209,7 +209,7 @@ Ui::run(const Window& window,
       uint32_t i = 0;
       std::string component_type;
       scene.registry().each(
-        [&i, &scene, &entity_name, &component_type](const entt::entity& entity) {
+        [&i, &scene, &entity_name, &component_type, &resource_manager](const entt::entity& entity) {
           if (scene.registry().has<Components::Camera>(entity)) {
             component_type = " (Camera)";
           } else if (scene.registry().has<Components::Sky>(entity)) {
@@ -229,6 +229,46 @@ Ui::run(const Window& window,
               assert(payload->DataSize == sizeof(id));
               memcpy(&id, payload->Data, sizeof(id));
               scene.registry().emplace<Components::Animation>(entity, id, 0u);
+
+              auto& mesh = scene.registry().get<Components::Mesh>(entity);
+              auto& armature = scene.registry().get<Components::Armature>(entity);
+              auto& animation = scene.registry().get<Components::Animation>(entity);
+
+              const auto& mesh_resource = resource_manager.mesh_cache().handle(mesh.id);
+              const auto& animation_resource = resource_manager.animation_cache().handle(animation.id);
+
+              if (armature.joints.size() != animation_resource->keyframes[0].bones.size()) {
+                  throw "Number of joints in animation do not match mesh.";
+              }
+
+              auto& keyframes = animation_resource->keyframes;
+
+              animation.transformed_matrices.reserve(keyframes.size());
+              for (int i = 0; i < keyframes.size(); i++) {
+                  animation.transformed_matrices.push_back(std::vector<glm::mat4>());
+                  animation.transformed_matrices[i].reserve(keyframes[i].bones.size());
+                  for (int j = 0; j < keyframes[i].bones.size(); j++) {
+                      int parent_id = mesh_resource->bones[j].parent;
+
+                      auto transformed_mat = keyframes[i].bones[j];
+
+                      while (parent_id != -1) {
+                          const bone_t& parent_bone = mesh_resource->bones[parent_id];
+                          const mat4 parent_joint = keyframes[i].bones[parent_id];
+
+                          /*glm::mat4 parent_trans =
+                              glm::translate(glm::mat4(1.0f),
+                                  { parent_bone.position.x, parent_bone.position.y, parent_bone.position.z });
+                          glm::mat4 parent_rot = glm::mat4(parent_bone.orientation);
+                          glm::mat4 parent_trans_rot = parent_trans * parent_rot;*/
+                          transformed_mat = transformed_mat * parent_joint;
+
+                          parent_id = parent_bone.parent;
+                      }
+
+                      animation.transformed_matrices[i].push_back(transformed_mat);
+                  }
+              }
             }
             ImGui::EndDragDropTarget();
           }
@@ -254,7 +294,7 @@ Ui::run(const Window& window,
             ENTT_ID_TYPE id;
             assert(payload->DataSize == sizeof(id));
             memcpy(&id, payload->Data, sizeof(id));
-            registry.emplace<Components::Animation>(*selected_entity, id, /*dummy=*/0u);
+            registry.emplace<Components::Animation>(*selected_entity, id, 0u);
           }
           ImGui::EndDragDropTarget();
         }

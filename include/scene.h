@@ -43,6 +43,7 @@ struct Animation
 {
   ENTT_ID_TYPE id;
   uint32_t current_frame;
+  std::vector<std::vector<glm::mat4>> transformed_matrices;
 };
 } // namespace Components
 
