@@ -42,7 +42,7 @@ struct Armature
 struct Animation
 {
   ENTT_ID_TYPE id;
-  uint32_t dummy; // TODO: replace me with things an animation needs, such as current animation time
+  uint32_t current_frame;
 };
 } // namespace Components
 

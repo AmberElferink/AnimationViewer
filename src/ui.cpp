@@ -228,7 +228,7 @@ Ui::run(const Window& window,
               ENTT_ID_TYPE id;
               assert(payload->DataSize == sizeof(id));
               memcpy(&id, payload->Data, sizeof(id));
-              scene.registry().emplace<Components::Animation>(entity, id);
+              scene.registry().emplace<Components::Animation>(entity, id, 0u);
             }
             ImGui::EndDragDropTarget();
           }
@@ -342,8 +342,13 @@ Ui::run(const Window& window,
         if (registry.has<Components::Animation>(*selected_entity)) {
           if (ImGui::TreeNode("Animation Component")) {
             auto& animation = registry.get<Components::Animation>(*selected_entity);
+            auto& current_animation = resource_manager.animation_cache().handle(animation.id);
             ImGui::Text("Name: %s",
-                        resource_manager.animation_cache().handle(animation.id)->name.c_str());
+                       current_animation->name.c_str());
+
+            uint32_t slider_min = 0;
+            uint32_t frame_count = current_animation->frame_count - 1;
+            ImGui::SliderScalar("frames", ImGuiDataType_U32, &animation.current_frame, &slider_min, &frame_count);
             ImGui::TreePop();
           }
         }

@@ -61,7 +61,7 @@ struct Animation
 {
   Animation() = default;
   std::string name;
-  uint32_t frameCount;
+  uint32_t frame_count;
   uint32_t animation_duration;
   std::vector<AnimationFrame> keyframes;
   // TODO: Load animation information here such as keyframes and timing
