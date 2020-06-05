@@ -200,7 +200,7 @@ Renderer::render(const Scene& scene,
 
       // Get the Armature component of the entity
       if (scene.registry().has<Components::Armature>(entity)) {
-        const auto& armature = scene.registry().get<Components::Armature>(entity);
+        const auto &armature = scene.registry().get<Components::Armature>(entity);
         const std::vector<glm::mat4>& bone_trans_rots = armature.joints;
         memcpy(mesh_vertex_uniform.bone_trans_rots,
                bone_trans_rots.data(),

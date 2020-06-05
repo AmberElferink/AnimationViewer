@@ -116,8 +116,23 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
   {
     auto animation = std::make_shared<Resource::Animation>();
     animation->name = anm.GetHeader().name;
+    animation->frameCount = anm.GetHeader().frame_count;
+    
+    const std::vector<openblack::anm::ANMFrame> &frames = anm.GetKeyframes();
+    animation->keyframes.reserve(animation->frameCount * sizeof(Resource::AnimationFrame));
+    for (int i = 0; i < animation->frameCount; i++)
+    {
+        Resource::AnimationFrame frame;
 
-    // TODO: copy data over from anm to animation resource
+        for (auto bone : frames[i].bones)
+        {
+            Resource::AnimationBone animation_bone;
+            std::copy(std::begin(bone.matrix), std::end(bone.matrix), std::begin(animation_bone.matrix));
+            frame.bones.push_back(animation_bone);
+        }
+        frame.time = frames[i].time;
+        animation->keyframes.push_back(frame);
+    }
 
     return animation;
   }

@@ -228,7 +228,7 @@ Ui::run(const Window& window,
               ENTT_ID_TYPE id;
               assert(payload->DataSize == sizeof(id));
               memcpy(&id, payload->Data, sizeof(id));
-              scene.registry().emplace<Components::Animation>(entity, id, /*dummy=*/0u);
+              scene.registry().emplace<Components::Animation>(entity, id);
             }
             ImGui::EndDragDropTarget();
           }

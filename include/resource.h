@@ -46,10 +46,24 @@ struct Mesh
   std::unique_ptr<Graphics::IndexedMesh> gpu_resource;
 };
 
+struct AnimationBone
+{
+    float matrix[12];
+};
+
+struct AnimationFrame
+{
+    uint32_t time;
+    std::vector<AnimationBone> bones; //bones trans_rot (no bottom row)
+};
+
 struct Animation
 {
   Animation() = default;
   std::string name;
+  uint32_t frameCount;
+  uint32_t animation_duration;
+  std::vector<AnimationFrame> keyframes;
   // TODO: Load animation information here such as keyframes and timing
 };
 } // namespace Resource
