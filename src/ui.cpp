@@ -237,17 +237,6 @@ Ui::run(const Window& window,
               auto& armature = scene.registry().get<Components::Armature>(entity);
               auto& animation = scene.registry().get<Components::Animation>(entity);
 
-              std::ofstream file;
-              file.open("armature.txt");
-              for (auto joint : armature.joints) {
-                  file << std::fixed << std::setprecision(5) << joint[0].x << " " << joint[0].y << " " << joint[0].z << " " << joint[0].w << std::endl;
-                  file << std::fixed << std::setprecision(5) << joint[1].x << " " << joint[1].y << " " << joint[1].z << " " << joint[1].w << std::endl;
-                  file << std::fixed << std::setprecision(5) << joint[2].x << " " << joint[2].y << " " << joint[2].z << " " << joint[2].w << std::endl;
-                  file << std::fixed << std::setprecision(5) << joint[3].x << " " << joint[3].y << " " << joint[3].z << " " << joint[3].w << std::endl;
-                  file << std::endl;
-              }
-              file.close();
-
               const auto& mesh_resource = resource_manager.mesh_cache().handle(mesh.id);
               const auto& animation_resource = resource_manager.animation_cache().handle(animation.id);
               auto& keyframes = animation_resource->keyframes;
@@ -277,16 +266,6 @@ Ui::run(const Window& window,
                       animation.transformed_matrices[i].push_back(transformed_mat);
                   }
               }
-              std::ofstream file2;
-              file2.open("anim.txt");
-              for (auto joint : animation.transformed_matrices[0]) {
-                  file2 << std::fixed << std::setprecision(5) << joint[0].x << " " << joint[0].y << " " << joint[0].z << " " << joint[0].w << std::endl;
-                  file2 << std::fixed << std::setprecision(5) << joint[1].x << " " << joint[1].y << " " << joint[1].z << " " << joint[1].w << std::endl;
-                  file2 << std::fixed << std::setprecision(5) << joint[2].x << " " << joint[2].y << " " << joint[2].z << " " << joint[2].w << std::endl;
-                  file2 << std::fixed << std::setprecision(5) << joint[3].x << " " << joint[3].y << " " << joint[3].z << " " << joint[3].w << std::endl;
-                  file2 << std::endl;
-              }
-              file2.close();
             }
             ImGui::EndDragDropTarget();
           }
