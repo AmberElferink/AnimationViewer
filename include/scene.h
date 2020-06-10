@@ -9,6 +9,8 @@
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
+#include "resource.h"
+
 union SDL_Event;
 
 namespace AnimationViewer {
@@ -43,7 +45,20 @@ struct Animation
 {
   ENTT_ID_TYPE id;
   uint32_t current_frame;
+  uint32_t current_time = 0;
+  bool animating = false;
   std::vector<std::vector<glm::mat4>> transformed_matrices;
+
+  void animate(uint32_t dt, const entt::handle<Resource::Animation>& current_animation) {
+      current_frame = ((float)current_time / (float)current_animation->animation_duration) * current_animation->frame_count;
+      if (current_frame > current_animation->frame_count - 1) {
+          current_frame = 0;
+          current_time = 0;
+          animating = false;
+      }
+
+      current_time += dt;
+  }
 };
 } // namespace Components
 

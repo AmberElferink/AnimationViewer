@@ -407,6 +407,12 @@ Ui::run(const Window& window,
             uint32_t slider_min = 0;
             uint32_t frame_count = current_animation->frame_count - 1;
             ImGui::SliderScalar("frames", ImGuiDataType_U32, &animation.current_frame, &slider_min, &frame_count);
+            if (ImGui::Button("Start", { 100, 100 }) && !animation.animating) {
+                animation.animating = true;
+            }
+            if (animation.animating) {
+                animation.animate(dt.count(), current_animation);
+            }
             ImGui::TreePop();
           }
         }

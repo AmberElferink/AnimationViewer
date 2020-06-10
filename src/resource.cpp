@@ -119,6 +119,7 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
     auto animation = std::make_shared<Resource::Animation>();
     animation->name = anm.GetHeader().name;
     animation->frame_count = anm.GetHeader().frame_count;
+    animation->animation_duration = anm.GetHeader().animation_duration * 1000;
     
     const std::vector<openblack::anm::ANMFrame> &frames = anm.GetKeyframes();
     animation->keyframes.reserve(animation->frame_count * sizeof(Resource::AnimationFrame));
