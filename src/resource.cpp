@@ -130,7 +130,6 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
         for (auto bone : frames[i].bones)
         {
             glm::mat4x3 bone4x3mat = glm::make_mat4x3(bone.matrix);
-            //frame.bones.emplace_back(glm::transpose(bone4x3mat));
             frame.bones.emplace_back(bone4x3mat);
         }
         frame.time = frames[i].time;
