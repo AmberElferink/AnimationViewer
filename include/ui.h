@@ -5,7 +5,8 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <entt/entity/registry.hpp>
+
+#include <entt/fwd.hpp>
 
 struct ImGuiContext;
 struct SDL_Window;
@@ -34,7 +35,9 @@ public:
            ResourceManager& resource_manager,
            const std::vector<std::pair<std::string, float>>& renderer_metrics,
            std::chrono::microseconds& dt);
-  void AcceptAnimation(Scene& scene, const entt::entity& entity, const AnimationViewer::ResourceManager& resource_manager);
+  void AcceptAnimation(Scene& scene,
+                       const entt::entity& entity,
+                       const ResourceManager& resource_manager);
   void draw() const;
   bool process_event(const Window& window, const SDL_Event& event);
   bool has_mouse() const;

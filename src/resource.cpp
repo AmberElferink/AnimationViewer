@@ -85,7 +85,7 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
       mesh->vertices.push_back({
         { vertex.position.x, vertex.position.y, vertex.position.z },
         { vertex.normal.x, vertex.normal.y, vertex.normal.z },
-        (float)bone_index,
+        static_cast<float>(bone_index),
       });
 
       vertex_index++;
@@ -123,17 +123,15 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
     
     const std::vector<openblack::anm::ANMFrame> &frames = anm.GetKeyframes();
     animation->keyframes.reserve(animation->frame_count * sizeof(Resource::AnimationFrame));
-    for (int i = 0; i < animation->frame_count; i++)
-    {
-        Resource::AnimationFrame frame;
+    for (uint32_t i = 0; i < animation->frame_count; i++) {
+      Resource::AnimationFrame frame;
 
-        for (auto bone : frames[i].bones)
-        {
-            glm::mat4x3 bone4x3mat = glm::make_mat4x3(bone.matrix);
-            frame.bones.emplace_back(bone4x3mat);
-        }
-        frame.time = frames[i].time;
-        animation->keyframes.push_back(frame);
+      for (auto bone : frames[i].bones) {
+        glm::mat4x3 bone4x3mat = glm::make_mat4x3(bone.matrix);
+        frame.bones.emplace_back(bone4x3mat);
+      }
+      frame.time = frames[i].time;
+      animation->keyframes.push_back(frame);
     }
 
     return animation;

@@ -30,23 +30,31 @@ Scene::Scene()
 Scene::~Scene() = default;
 
 void
-Scene::update(ResourceManager& resource_manager, std::chrono::microseconds& dt) {
-  registry_.view<Components::Animation>().each([&resource_manager, &dt](auto entity, Components::Animation& animation) {
-    if (!animation.animating) {
-      return;
-    }
+Scene::update(ResourceManager& resource_manager, std::chrono::microseconds& dt)
+{
+  registry_.view<Components::Animation>().each(
+    [&resource_manager, &dt](auto entity, Components::Animation& animation) {
+      if (!animation.animating) {
+        return;
+      }
 
-    auto& current_animation = resource_manager.animation_cache().handle(animation.id);
+      const auto& current_animation = resource_manager.animation_cache().handle(animation.id);
 
-    animation.current_frame = ((float)animation.current_time / (float)current_animation->animation_duration) * current_animation->frame_count;
-    if (animation.current_frame > current_animation->frame_count - 1) {
-      animation.current_frame = 0;
-      animation.current_time = 0;
-      animation.animating = animation.loop;
-    }
+      animation.current_frame = static_cast<float>(animation.current_time) /
+                                static_cast<float>(current_animation->animation_duration) *
+                                current_animation->frame_count;
+      if (animation.current_frame > current_animation->frame_count - 1) {
+        if (animation.loop) {
+          animation.current_frame = 0;
+          animation.current_time = 0;
+        } else {
+          animation.current_frame = current_animation->frame_count - 1;
+        }
+        animation.animating = animation.loop;
+      }
 
-    animation.current_time += dt.count();
-  });
+      animation.current_time += dt.count();
+    });
 }
 
 void
@@ -141,8 +149,6 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
         }
       }
     }
-
-
   } else {
     assert(false);
   }

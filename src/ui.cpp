@@ -208,35 +208,34 @@ Ui::run(const Window& window,
       char entity_name[256];
       uint32_t i = 0;
       std::string component_type;
-      scene.registry().each(
-        [&i, &scene, &entity_name, &component_type, &resource_manager, this](const entt::entity& entity) {
-          if (scene.registry().has<Components::Camera>(entity)) {
-            component_type = " (Camera)";
-          } else if (scene.registry().has<Components::Sky>(entity)) {
-            component_type = " (Sky)";
-          } else if (scene.registry().has<Components::Mesh>(entity)) {
-            component_type = " (Mesh)";
-          }
-          snprintf(entity_name, sizeof(entity_name), "Entity %d%s", ++i, component_type.c_str());
-          if (ImGui::Selectable(entity_name, selected_entity == entity)) {
-            selected_entity = entity;
-          }
-          // Allow dropping assets into component if an entity is selected
-          if (ImGui::BeginDragDropTarget()) {
-            auto payload = ImGui::GetDragDropPayload();
+      scene.registry().each([&i, &scene, &entity_name, &component_type, &resource_manager, this](
+                              const entt::entity& entity) {
+        if (scene.registry().has<Components::Camera>(entity)) {
+          component_type = " (Camera)";
+        } else if (scene.registry().has<Components::Sky>(entity)) {
+          component_type = " (Sky)";
+        } else if (scene.registry().has<Components::Mesh>(entity)) {
+          component_type = " (Mesh)";
+        }
+        snprintf(entity_name, sizeof(entity_name), "Entity %d%s", ++i, component_type.c_str());
+        if (ImGui::Selectable(entity_name, selected_entity == entity)) {
+          selected_entity = entity;
+        }
+        // Allow dropping assets into component if an entity is selected
+        if (ImGui::BeginDragDropTarget()) {
+          auto payload = ImGui::GetDragDropPayload();
 
-            if (payload != nullptr) {
+          if (payload != nullptr) {
 
-              // If payload is animation
-              if (payload->IsDataType("DND_ANIMATION")) {
-                AcceptAnimation(scene, entity, resource_manager);
-              }
-
+            // If payload is animation
+            if (payload->IsDataType("DND_ANIMATION")) {
+              AcceptAnimation(scene, entity, resource_manager);
             }
-
-            ImGui::EndDragDropTarget();
           }
-        });
+
+          ImGui::EndDragDropTarget();
+        }
+      });
       scene_window_hovered_ = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows);
       ImGui::End();
     }
@@ -261,7 +260,6 @@ Ui::run(const Window& window,
             if (payload->IsDataType("DND_ANIMATION")) {
               AcceptAnimation(scene, *selected_entity, resource_manager);
             }
-
           }
 
           ImGui::EndDragDropTarget();
@@ -350,15 +348,46 @@ Ui::run(const Window& window,
         if (registry.has<Components::Animation>(*selected_entity)) {
           if (ImGui::TreeNode("Animation Component")) {
             auto& animation = registry.get<Components::Animation>(*selected_entity);
-            auto& current_animation = resource_manager.animation_cache().handle(animation.id);
-            ImGui::Text("Name: %s",
-                       current_animation->name.c_str());
+            const auto& current_animation = resource_manager.animation_cache().handle(animation.id);
+            ImGui::Text("Name: %s", current_animation->name.c_str());
 
             uint32_t slider_min = 0;
             uint32_t frame_count = current_animation->frame_count - 1;
-            ImGui::SliderScalar("frames", ImGuiDataType_U32, &animation.current_frame, &slider_min, &frame_count);
-            if (ImGui::Button("Start", { 100, 100 })) {
+            if (ImGui::SliderScalar("frames",
+                                    ImGuiDataType_U32,
+                                    &animation.current_frame,
+                                    &slider_min,
+                                    &frame_count)) {
+              auto time_per_frame = static_cast<float>(current_animation->animation_duration) /
+                                    static_cast<float>(current_animation->frame_count);
+              animation.current_time = time_per_frame * animation.current_frame;
+            }
+            if (!animation.animating) {
+              bool reset = false;
+              if (animation.current_frame == 0) {
+                if (ImGui::Button("Start")) {
+                  reset = true;
+                }
+              } else {
+                if (ImGui::Button("Reset")) {
+                  reset = true;
+                }
+              }
+              if (animation.current_frame < current_animation->frame_count - 1) {
+                if (ImGui::Button("Resume")) {
+                  animation.animating = true;
+                }
+              }
+              if (reset) {
+                animation.current_frame = 0;
+                animation.current_time = 0;
                 animation.animating = true;
+              }
+            }
+            if (animation.animating) {
+              if (ImGui::Button("Pause")) {
+                animation.animating = false;
+              }
             }
             ImGui::Checkbox("Animating", &animation.animating);
             ImGui::Checkbox("Loop", &animation.loop);
@@ -374,8 +403,11 @@ Ui::run(const Window& window,
   ImGui::Render();
 }
 
-void 
-Ui::AcceptAnimation(Scene& scene, const entt::entity& entity, const AnimationViewer::ResourceManager& resource_manager) {
+void
+Ui::AcceptAnimation(Scene& scene,
+                    const entt::entity& entity,
+                    const AnimationViewer::ResourceManager& resource_manager)
+{
   auto payload = ImGui::AcceptDragDropPayload("DND_ANIMATION");
 
   if (payload == nullptr) {
@@ -394,15 +426,17 @@ Ui::AcceptAnimation(Scene& scene, const entt::entity& entity, const AnimationVie
   };
 
   if (payload != nullptr) {
-    auto& animation = scene.registry().emplace<Components::Animation>(entity, id, 0u);
+    auto& animation = scene.registry().emplace<Components::Animation>(entity, id);
+    animation.loop = true;
+    animation.animating = true;
     auto& mesh = scene.registry().get<Components::Mesh>(entity);
     const auto& mesh_resource = resource_manager.mesh_cache().handle(mesh.id);
 
     animation.transformed_matrices.reserve(animation_resource->keyframes.size());
-    for (int i = 0; i < animation_resource->keyframes.size(); i++) {
+    for (uint32_t i = 0; i < animation_resource->keyframes.size(); i++) {
       animation.transformed_matrices.push_back(std::vector<glm::mat4>());
       animation.transformed_matrices[i].reserve(animation_resource->keyframes[i].bones.size());
-      for (int j = 0; j < animation_resource->keyframes[i].bones.size(); j++) {
+      for (uint32_t j = 0; j < animation_resource->keyframes[i].bones.size(); j++) {
         int parent_id = mesh_resource->bones[j].parent;
 
         auto transformed_mat = animation_resource->keyframes[i].bones[j];
