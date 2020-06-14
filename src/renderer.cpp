@@ -8,6 +8,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/matrix.hpp>
+#include <glm/ext/matrix_common.hpp>
 
 #if __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -200,57 +201,52 @@ Renderer::render(const Scene& scene,
 
       // Get the Armature component of the entity
       if (scene.registry().has<Components::Armature>(entity)) {
-          const auto& armature = scene.registry().get<Components::Armature>(entity);
-          
-          if (scene.registry().has<Components::Animation>(entity))
-          {
-              const auto& animation = scene.registry().get<Components::Animation>(entity);
+        const auto& armature = scene.registry().get<Components::Armature>(entity);
 
-              // If the animation is at the last keyframe, render the bones without linear interpolation. Else we linearly interpolate the bones for smoother animation.
-              if (animation.current_frame == animation.transformed_matrices.size() - 1) {
-                  const std::vector<glm::mat4>& bone_trans_rots = animation.transformed_matrices[animation.current_frame];
-                  memcpy(mesh_vertex_uniform.bone_trans_rots,
-                      bone_trans_rots.data(),
-                      bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
-              }
-              else {
-                  const std::vector<glm::mat4> bone_trans_rots_current = animation.transformed_matrices[animation.current_frame];
-                  const std::vector<glm::mat4> bone_trans_rots_next = animation.transformed_matrices[animation.current_frame + 1];
-                  std::vector<glm::mat4> blended_bones;
-                  blended_bones.reserve(bone_trans_rots_current.size());
+        if (scene.registry().has<Components::Animation>(entity))
+        {
+          const auto& animation = scene.registry().get<Components::Animation>(entity);
 
-                  const auto& current_animation = resource_manager.animation_cache().handle(animation.id);
-                  auto time_per_frame = (float)current_animation->animation_duration / (float)current_animation->frame_count;
-                  auto current_frame_timestamp = (animation.current_frame * time_per_frame);
-                  auto next_frame_timestamp = ((animation.current_frame + 1) * time_per_frame);
-
-                  // Calculate the normalized interpolation factor using the current keyframe timestamp and next keyframe timestamp as the min and max values.
-                  auto interpolation_factor = (animation.current_time - current_frame_timestamp) / (next_frame_timestamp - current_frame_timestamp);
-
-                  // Linearly interpolate each individual bone matrix value
-                  for (int i = 0; i < bone_trans_rots_current.size(); i++) {
-                      glm::mat4 newMatrix;
-                      for (int j = 0; j < bone_trans_rots_current[i].length(); j++) {
-                          for (int k = 0; k < bone_trans_rots_current[i][j].length(); k++) {
-                              newMatrix[j][k] = std::lerp(bone_trans_rots_current[i][j][k], bone_trans_rots_next[i][j][k], interpolation_factor);
-                          }
-                      }
-                      blended_bones.push_back(newMatrix);
-                  }
-
-                  memcpy(mesh_vertex_uniform.bone_trans_rots,
-                      blended_bones.data(),
-                      blended_bones.size() * sizeof(blended_bones[0]));
-              }
+          // If the animation is at the last keyframe, render the bones without linear interpolation. Else we linearly interpolate the bones for smoother animation.
+          if (animation.current_frame == animation.transformed_matrices.size() - 1) {
+            const std::vector<glm::mat4>& bone_trans_rots = animation.transformed_matrices[animation.current_frame];
+            memcpy(mesh_vertex_uniform.bone_trans_rots,
+              bone_trans_rots.data(),
+              bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
           }
-          else // if there is no animation, load default bone mat
-          {
-              const std::vector<glm::mat4>& bone_trans_rots = armature.joints;
-              memcpy(mesh_vertex_uniform.bone_trans_rots,
-                  bone_trans_rots.data(),
-                  bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
+          else {
+            const std::vector<glm::mat4> bone_trans_rots_current = animation.transformed_matrices[animation.current_frame];
+            const std::vector<glm::mat4> bone_trans_rots_next = animation.transformed_matrices[animation.current_frame + 1];
+            std::vector<glm::mat4> blended_bones;
+            blended_bones.reserve(bone_trans_rots_current.size());
+
+            const auto& current_animation = resource_manager.animation_cache().handle(animation.id);
+            auto time_per_frame = (float)current_animation->animation_duration / (float)current_animation->frame_count;
+            auto current_frame_timestamp = (animation.current_frame * time_per_frame);
+            auto next_frame_timestamp = ((animation.current_frame + 1) * time_per_frame);
+
+            // Calculate the normalized interpolation factor using the current keyframe timestamp and next keyframe timestamp as the min and max values.
+            auto interpolation_factor = (animation.current_time - current_frame_timestamp) / (next_frame_timestamp - current_frame_timestamp);
+
+            // Linearly interpolate each bone matrix
+            for (int i = 0; i < bone_trans_rots_current.size(); i++) {
+              glm::mat4 newMatrix = glm::mix(bone_trans_rots_current[i], bone_trans_rots_next[i], interpolation_factor);
+              blended_bones.push_back(newMatrix);
+            }
+
+            memcpy(mesh_vertex_uniform.bone_trans_rots,
+              blended_bones.data(),
+              blended_bones.size() * sizeof(blended_bones[0]));
           }
-      } 
+        }
+        else // if there is no animation, load default bone mat
+        {
+          const std::vector<glm::mat4>& bone_trans_rots = armature.joints;
+          memcpy(mesh_vertex_uniform.bone_trans_rots,
+            bone_trans_rots.data(),
+            bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
+        }
+      }
       else {
         mesh_vertex_uniform.bone_trans_rots[0] = glm::mat4(1.0f);
       }

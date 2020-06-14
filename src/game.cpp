@@ -89,6 +89,7 @@ Game::main_loop()
   ui_->run(*window_, *scene_, *resource_manager_, renderer_metrics_, delta_time);
   resource_manager_->upload_dirty_buffers(*renderer_);
   renderer_->render(*scene_, *resource_manager_, *ui_, delta_time);
+  scene_->update(*resource_manager_, delta_time);
   window_->swap();
 
   return !input_->should_quit();

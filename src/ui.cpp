@@ -1,9 +1,6 @@
 #include "ui.h"
 
 #include <map>
-#include <iostream>
-#include <fstream>
-#include <iomanip>
 
 #include <SDL_events.h>
 #include <SDL_video.h>
@@ -226,45 +223,52 @@ Ui::run(const Window& window,
           }
           // Allow dropping assets into component if an entity is selected
           if (ImGui::BeginDragDropTarget()) {
-            auto payload = ImGui::AcceptDragDropPayload("DND_ANIMATION");
+            auto payload = ImGui::GetDragDropPayload();
+
+            if (payload == nullptr || !payload->IsDataType("DND_ANIMATION") || !scene.registry().has<Components::Armature>(entity)) {
+              ImGui::EndDragDropTarget();
+              return;
+            }
+
+            ENTT_ID_TYPE id;
+            assert(payload->DataSize == sizeof(id));
+            memcpy(&id, payload->Data, sizeof(id));
+
+            const auto& animation_resource = resource_manager.animation_cache().handle(id);
+            auto& armature = scene.registry().get<Components::Armature>(entity);
+
+            if (armature.joints.size() != animation_resource->keyframes[0].bones.size()) {
+                ImGui::EndDragDropTarget();
+                return;
+            };
+
+            payload = ImGui::AcceptDragDropPayload("DND_ANIMATION");
+
             if (payload != nullptr) {
-              ENTT_ID_TYPE id;
-              assert(payload->DataSize == sizeof(id));
-              memcpy(&id, payload->Data, sizeof(id));
-              scene.registry().emplace<Components::Animation>(entity, id, 0u);
-
+              auto& animation = scene.registry().emplace<Components::Animation>(entity, id, 0u);
               auto& mesh = scene.registry().get<Components::Mesh>(entity);
-              auto& armature = scene.registry().get<Components::Armature>(entity);
-              auto& animation = scene.registry().get<Components::Animation>(entity);
-
               const auto& mesh_resource = resource_manager.mesh_cache().handle(mesh.id);
-              const auto& animation_resource = resource_manager.animation_cache().handle(animation.id);
-              auto& keyframes = animation_resource->keyframes;
 
-              if (armature.joints.size() != keyframes[0].bones.size()) {
-                  throw "Number of joints in animation do not match mesh.";
-              }
+              animation.transformed_matrices.reserve(animation_resource->keyframes.size());
+              for (int i = 0; i < animation_resource->keyframes.size(); i++) {
+                animation.transformed_matrices.push_back(std::vector<glm::mat4>());
+                animation.transformed_matrices[i].reserve(animation_resource->keyframes[i].bones.size());
+                for (int j = 0; j < animation_resource->keyframes[i].bones.size(); j++) {
+                  int parent_id = mesh_resource->bones[j].parent;
 
-              animation.transformed_matrices.reserve(keyframes.size());
-              for (int i = 0; i < keyframes.size(); i++) {
-                  animation.transformed_matrices.push_back(std::vector<glm::mat4>());
-                  animation.transformed_matrices[i].reserve(keyframes[i].bones.size());
-                  for (int j = 0; j < keyframes[i].bones.size(); j++) {
-                      int parent_id = mesh_resource->bones[j].parent;
+                  auto transformed_mat = animation_resource->keyframes[i].bones[j];
 
-                      auto transformed_mat = keyframes[i].bones[j];
+                  while (parent_id != -1) {
+                    const bone_t& parent_bone = mesh_resource->bones[parent_id];
+                    const mat4 parent_joint = animation_resource->keyframes[i].bones[parent_id];
 
-                      while (parent_id != -1) {
-                          const bone_t& parent_bone = mesh_resource->bones[parent_id];
-                          const mat4 parent_joint = keyframes[i].bones[parent_id];
+                    transformed_mat = parent_joint * transformed_mat;
 
-                          transformed_mat = parent_joint * transformed_mat;
-
-                          parent_id = parent_bone.parent;
-                      }
-
-                      animation.transformed_matrices[i].push_back(transformed_mat);
+                    parent_id = parent_bone.parent;
                   }
+
+                  animation.transformed_matrices[i].push_back(transformed_mat);
+                }
               }
             }
             ImGui::EndDragDropTarget();
@@ -286,14 +290,47 @@ Ui::run(const Window& window,
         auto& registry = scene.registry();
         // Allow dropping assets into component if an entity is selected
         if (ImGui::BeginDragDropTarget()) {
-          auto payload = ImGui::AcceptDragDropPayload("DND_ANIMATION");
-          if (payload != nullptr) {
+          auto payload = ImGui::GetDragDropPayload();
+
+          if (payload->IsDataType("DND_ANIMATION") && payload != nullptr) {
             ENTT_ID_TYPE id;
             assert(payload->DataSize == sizeof(id));
             memcpy(&id, payload->Data, sizeof(id));
-            registry.emplace<Components::Animation>(*selected_entity, id, 0u);
-          }
-          ImGui::EndDragDropTarget();
+
+            auto& armature = scene.registry().get<Components::Armature>(*selected_entity);
+            const auto& animation_resource = resource_manager.animation_cache().handle(id);
+
+            if (armature.joints.size() == animation_resource->keyframes[0].bones.size()) {
+              ImGui::AcceptDragDropPayload("DND_ANIMATION");
+              auto& animation = scene.registry().emplace<Components::Animation>(*selected_entity, id, 0u);
+              auto& mesh = scene.registry().get<Components::Mesh>(*selected_entity);
+              const auto& mesh_resource = resource_manager.mesh_cache().handle(mesh.id);
+
+              animation.transformed_matrices.reserve(animation_resource->keyframes.size());
+              for (int i = 0; i < animation_resource->keyframes.size(); i++) {
+                animation.transformed_matrices.push_back(std::vector<glm::mat4>());
+                animation.transformed_matrices[i].reserve(animation_resource->keyframes[i].bones.size());
+                for (int j = 0; j < animation_resource->keyframes[i].bones.size(); j++) {
+                  int parent_id = mesh_resource->bones[j].parent;
+
+                  auto transformed_mat = animation_resource->keyframes[i].bones[j];
+
+                  while (parent_id != -1) {
+                    const bone_t& parent_bone = mesh_resource->bones[parent_id];
+                    const mat4 parent_joint = animation_resource->keyframes[i].bones[parent_id];
+
+                    transformed_mat = parent_joint * transformed_mat;
+
+                    parent_id = parent_bone.parent;
+                  }
+
+                  animation.transformed_matrices[i].push_back(transformed_mat);
+                }
+              }
+            }
+        }
+
+        ImGui::EndDragDropTarget();
         }
 
         if (registry.has<Components::Transform>(*selected_entity)) {
@@ -386,12 +423,11 @@ Ui::run(const Window& window,
             uint32_t slider_min = 0;
             uint32_t frame_count = current_animation->frame_count - 1;
             ImGui::SliderScalar("frames", ImGuiDataType_U32, &animation.current_frame, &slider_min, &frame_count);
-            if (ImGui::Button("Start", { 100, 100 }) && !animation.animating) {
+            if (ImGui::Button("Start", { 100, 100 })) {
                 animation.animating = true;
             }
-            if (animation.animating) {
-                animation.animate(dt.count(), current_animation);
-            }
+            ImGui::Checkbox("Animating", &animation.animating);
+            ImGui::Checkbox("Loop", &animation.loop);
             ImGui::TreePop();
           }
         }
