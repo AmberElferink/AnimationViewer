@@ -49,16 +49,36 @@ Scene::update(ResourceManager& resource_manager, std::chrono::microseconds& dt)
       }
 
       const auto& current_animation = resource_manager.animation_cache().handle(animation.id);
-
-      animation.current_frame = static_cast<float>(animation.current_time) /
-                                static_cast<float>(current_animation->animation_duration) *
-                                current_animation->frame_count;
+      animation.current_frame = animation.current_time * current_animation->frame_rate;
       if (animation.current_frame > current_animation->frame_count - 1) {
         if (animation.loop) {
           animation.current_frame = 0;
           animation.current_time = 0;
         } else {
           animation.current_frame = current_animation->frame_count - 1;
+        }
+        animation.animating = animation.loop;
+      }
+
+      animation.current_time += dt.count();
+    });
+
+  registry_.view<Components::MotionCaptureAnimation>().each(
+    [&resource_manager, &dt](auto entity, Components::MotionCaptureAnimation& animation) {
+      if (!animation.animating) {
+        return;
+      }
+      const auto& current_animation = resource_manager.motion_capture_cache().handle(animation.id);
+      // convert frame rate to microseconds
+      animation.current_frame =
+        static_cast<float>(animation.current_time) * current_animation->frame_rate * 1e-6f;
+      auto frame_count = current_animation->frame_points.size() / current_animation->point_count;
+      if (animation.current_frame > frame_count - 1) {
+        if (animation.loop) {
+          animation.current_frame = 0;
+          animation.current_time = 0;
+        } else {
+          animation.current_frame = frame_count - 1;
         }
         animation.animating = animation.loop;
       }

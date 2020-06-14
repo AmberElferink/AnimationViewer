@@ -1,6 +1,9 @@
 #include "resource.h"
 
 #include <ANMFile.h>
+#include <Data.h>
+#include <Frame.h>
+#include <Header.h>
 #include <L3DFile.h>
 #include <ezc3d.h>
 #include <glm/matrix.hpp>
@@ -132,8 +135,10 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
     animation->name = anm.GetHeader().name;
     animation->frame_count = anm.GetHeader().frame_count;
     animation->animation_duration = anm.GetHeader().animation_duration * 1000;
-    
-    const std::vector<openblack::anm::ANMFrame> &frames = anm.GetKeyframes();
+    animation->frame_rate =
+      animation->frame_count / static_cast<float>(animation->animation_duration);
+
+    const std::vector<openblack::anm::ANMFrame>& frames = anm.GetKeyframes();
     animation->keyframes.reserve(animation->frame_count * sizeof(Resource::AnimationFrame));
     for (uint32_t i = 0; i < animation->frame_count; i++) {
       Resource::AnimationFrame frame;
@@ -157,8 +162,21 @@ struct MotionCapture final : entt::loader<MotionCapture, Resource::MotionCapture
   {
     auto mocap = std::make_shared<Resource::MotionCapture>();
     mocap->name = name;
+    mocap->frame_rate = c3d.header().frameRate();
+    mocap->point_count = c3d.header().nb3dPoints();
+    const auto& data = c3d.data();
+    mocap->frame_points.resize(mocap->point_count * data.nbFrames());
 
-    // TODO: copy data over from c3d to mocap resource
+    for (uint32_t i = 0; i < data.nbFrames(); ++i) {
+      const auto& frame = data.frame(i);
+      const auto& points = frame.points();
+      assert(points.nbPoints() == mocap->point_count);
+      for (uint32_t j = 0; j < mocap->point_count; ++j) {
+        mocap->frame_points[i * mocap->point_count + j].x = points.point(j).x();
+        mocap->frame_points[i * mocap->point_count + j].y = points.point(j).y();
+        mocap->frame_points[i * mocap->point_count + j].z = points.point(j).z();
+      }
+    }
 
     return mocap;
   }

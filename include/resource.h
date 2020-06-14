@@ -48,14 +48,15 @@ struct Mesh
 
 struct AnimationFrame
 {
-    uint32_t time;
-    std::vector<glm::mat4> bones; //bones trans_rot (no bottom row)
+  uint32_t time;
+  std::vector<glm::mat4> bones; // bones trans_rot (no bottom row)
 };
 
 struct Animation
 {
   Animation() = default;
   std::string name;
+  float frame_rate;
   uint32_t frame_count;
   uint32_t animation_duration;
   std::vector<AnimationFrame> keyframes;
@@ -65,6 +66,10 @@ struct MotionCapture
 {
   MotionCapture() = default;
   std::string name;
+  float frame_rate;
+  uint32_t point_count;
+  /// Flat array of frame count * point count, with all points in one frame sequential
+  std::vector<glm::vec3> frame_points;
 };
 } // namespace Resource
 

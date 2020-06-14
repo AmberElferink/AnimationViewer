@@ -35,9 +35,15 @@ public:
            ResourceManager& resource_manager,
            const std::vector<std::pair<std::string, float>>& renderer_metrics,
            std::chrono::microseconds& dt);
-  void AcceptAnimation(Scene& scene,
-                       const entt::entity& entity,
-                       const ResourceManager& resource_manager);
+  void entity_dnd_target(Scene& scene,
+                         const entt::entity& entity,
+                         const ResourceManager& resource_manager);
+  bool entity_accept_animation(Scene& scene,
+                               const entt::entity& entity,
+                               const ResourceManager& resource_manager);
+  bool entity_accept_mocap(Scene& scene,
+                           const entt::entity& entity,
+                           const ResourceManager& resource_manager);
   void draw() const;
   bool process_event(const Window& window, const SDL_Event& event);
   bool has_mouse() const;

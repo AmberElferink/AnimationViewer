@@ -217,10 +217,9 @@ Renderer::render(const Scene& scene,
                    bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
           } else {
             const auto& current_animation = resource_manager.animation_cache().handle(animation.id);
-            auto time_per_frame = static_cast<float>(current_animation->animation_duration) /
-                                  static_cast<float>(current_animation->frame_count);
-            auto current_frame_timestamp = (animation.current_frame * time_per_frame);
-            auto next_frame_timestamp = ((animation.current_frame + 1) * time_per_frame);
+            auto current_frame_timestamp = animation.current_frame / current_animation->frame_rate;
+            auto next_frame_timestamp =
+              (animation.current_frame + 1) / current_animation->frame_rate;
 
             // Calculate the normalized interpolation factor using the current keyframe timestamp
             // and next keyframe timestamp as the min and max values.

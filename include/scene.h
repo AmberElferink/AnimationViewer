@@ -50,6 +50,15 @@ struct Animation
   bool loop = false;
   std::vector<std::vector<glm::mat4>> transformed_matrices;
 };
+struct MotionCaptureAnimation
+{
+  ENTT_ID_TYPE id;
+  uint32_t current_frame;
+  uint32_t current_time = 0;
+  bool animating = false;
+  bool loop = false;
+  std::vector<std::vector<glm::mat4>> transformed_matrices;
+};
 } // namespace Components
 
 class Scene
