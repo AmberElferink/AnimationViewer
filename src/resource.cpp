@@ -2,6 +2,7 @@
 
 #include <ANMFile.h>
 #include <L3DFile.h>
+#include <ezc3d.h>
 #include <glm/matrix.hpp>
 
 #include "renderer.h"
@@ -17,6 +18,8 @@ enum class FileType
   L3D,
   /// Lionhead Studio Animation
   ANM,
+  /// Biomechanics standard file format
+  C3D,
   Unknown
 };
 
@@ -37,6 +40,16 @@ detect_file_type(const std::filesystem::path& path)
   if (ext == ".anm" || ext == ".Anm" || ext == ".ANm" || ext == ".aNm" || ext == ".aNM" ||
       ext == ".anM" || ext == ".AnM" || ext == ".ANM") {
     return FileType::ANM;
+  }
+  // Check for C3D
+  if (ext == ".c3d" || ext == ".C3D" || ext == ".c3D" || ext == ".c3d") {
+    FILE* file = fopen(path.string().c_str(), "rb");
+    char magic_number[2];
+    fread(magic_number, sizeof(magic_number), 1, file);
+    // Some C3D files have a bunch of 0s at the start of the file, we're not supporting those
+    if (magic_number[1] == 0x50) {
+      return FileType::C3D;
+    }
   }
   return FileType::Unknown;
 }
@@ -136,6 +149,20 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
     return animation;
   }
 };
+
+struct MotionCapture final : entt::loader<MotionCapture, Resource::MotionCapture>
+{
+  std::shared_ptr<Resource::MotionCapture> load(const std::string& name,
+                                                const ezc3d::c3d& c3d) const
+  {
+    auto mocap = std::make_shared<Resource::MotionCapture>();
+    mocap->name = name;
+
+    // TODO: copy data over from c3d to mocap resource
+
+    return mocap;
+  }
+};
 } // namespace AnimationViewer::Loader
 
 std::unique_ptr<ResourceManager>
@@ -177,6 +204,12 @@ ResourceManager::animation_cache() const
   return animation_cache_;
 }
 
+const entt::cache<Resource::MotionCapture>&
+ResourceManager::motion_capture_cache() const
+{
+  return motion_capture_cache_;
+}
+
 std::optional<std::pair<entt::hashed_string, ResourceManager::Type>>
 ResourceManager::load_file(const std::filesystem::path& path)
 {
@@ -191,6 +224,12 @@ ResourceManager::load_file(const std::filesystem::path& path)
       auto animation = load_anm_file(path);
       if (animation.has_value()) {
         return std::make_pair(*animation, Type::Animation);
+      }
+    } break;
+    case FileType::C3D: {
+      auto mocap = load_c3d_file(path);
+      if (mocap.has_value()) {
+        return std::make_pair(*mocap, Type::MotionCapture);
       }
     } break;
     case FileType::Unknown:
@@ -216,5 +255,14 @@ ResourceManager::load_anm_file(const std::filesystem::path& path)
   anm.Open(path.string());
   auto id = entt::hashed_string{ path.string().c_str() };
   animation_cache_.load<Loader::Animation>(id, path.filename().string(), anm);
+  return std::make_optional(id);
+}
+
+std::optional<entt::hashed_string>
+ResourceManager::load_c3d_file(const std::filesystem::path& path)
+{
+  ezc3d::c3d c3d(path.string());
+  auto id = entt::hashed_string{ path.string().c_str() };
+  motion_capture_cache_.load<Loader::MotionCapture>(id, path.filename().string(), c3d);
   return std::make_optional(id);
 }

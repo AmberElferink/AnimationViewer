@@ -146,7 +146,7 @@ Ui::run(const Window& window,
                             ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, height), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Assets", &show_assets_)) {
-      ImGui::Columns(2);
+      ImGui::Columns(3);
       if (ImGui::TreeNodeEx("Meshes", ImGuiTreeNodeFlags_DefaultOpen)) {
         resource_manager.mesh_cache().each([&resource_manager](const auto id) {
           ImGui::TreeNodeEx(resource_manager.mesh_cache().handle(id)->name.c_str(),
@@ -174,6 +174,23 @@ Ui::run(const Window& window,
             ImGui::SetDragDropPayload("DND_ANIMATION", &id, sizeof(id));
             ImGui::Text("Animation: %s",
                         resource_manager.animation_cache().handle(id)->name.c_str());
+            ImGui::EndDragDropSource();
+          }
+        });
+        ImGui::TreePop();
+      }
+      ImGui::NextColumn();
+      if (ImGui::TreeNodeEx("Motion Captures", ImGuiTreeNodeFlags_DefaultOpen)) {
+        resource_manager.motion_capture_cache().each([&resource_manager](const auto id) {
+          ImGui::TreeNodeEx(resource_manager.motion_capture_cache().handle(id)->name.c_str(),
+                            ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+          if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Drag and drop on entity to add motion capture component.");
+          }
+          if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+            ImGui::SetDragDropPayload("DND_MOCAP", &id, sizeof(id));
+            ImGui::Text("Motion Capture: %s",
+                        resource_manager.motion_capture_cache().handle(id)->name.c_str());
             ImGui::EndDragDropSource();
           }
         });
