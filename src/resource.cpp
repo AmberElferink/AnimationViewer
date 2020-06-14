@@ -3,7 +3,6 @@
 #include <ANMFile.h>
 #include <L3DFile.h>
 #include <glm/matrix.hpp>
-#include <glm/gtx/string_cast.hpp>
 
 #include "renderer.h"
 
