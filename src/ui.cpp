@@ -209,7 +209,7 @@ Ui::run(const Window& window,
       uint32_t i = 0;
       std::string component_type;
       scene.registry().each(
-        [&i, &scene, &entity_name, &component_type, &resource_manager](const entt::entity& entity) {
+        [&i, &scene, &entity_name, &component_type, &resource_manager, this](const entt::entity& entity) {
           if (scene.registry().has<Components::Camera>(entity)) {
             component_type = " (Camera)";
           } else if (scene.registry().has<Components::Sky>(entity)) {
@@ -225,52 +225,15 @@ Ui::run(const Window& window,
           if (ImGui::BeginDragDropTarget()) {
             auto payload = ImGui::GetDragDropPayload();
 
-            if (payload == nullptr || !payload->IsDataType("DND_ANIMATION") || !scene.registry().has<Components::Armature>(entity)) {
-              ImGui::EndDragDropTarget();
-              return;
-            }
-
-            ENTT_ID_TYPE id;
-            assert(payload->DataSize == sizeof(id));
-            memcpy(&id, payload->Data, sizeof(id));
-
-            const auto& animation_resource = resource_manager.animation_cache().handle(id);
-            auto& armature = scene.registry().get<Components::Armature>(entity);
-
-            if (armature.joints.size() != animation_resource->keyframes[0].bones.size()) {
-                ImGui::EndDragDropTarget();
-                return;
-            };
-
-            payload = ImGui::AcceptDragDropPayload("DND_ANIMATION");
-
             if (payload != nullptr) {
-              auto& animation = scene.registry().emplace<Components::Animation>(entity, id, 0u);
-              auto& mesh = scene.registry().get<Components::Mesh>(entity);
-              const auto& mesh_resource = resource_manager.mesh_cache().handle(mesh.id);
 
-              animation.transformed_matrices.reserve(animation_resource->keyframes.size());
-              for (int i = 0; i < animation_resource->keyframes.size(); i++) {
-                animation.transformed_matrices.push_back(std::vector<glm::mat4>());
-                animation.transformed_matrices[i].reserve(animation_resource->keyframes[i].bones.size());
-                for (int j = 0; j < animation_resource->keyframes[i].bones.size(); j++) {
-                  int parent_id = mesh_resource->bones[j].parent;
-
-                  auto transformed_mat = animation_resource->keyframes[i].bones[j];
-
-                  while (parent_id != -1) {
-                    const bone_t& parent_bone = mesh_resource->bones[parent_id];
-                    const mat4 parent_joint = animation_resource->keyframes[i].bones[parent_id];
-
-                    transformed_mat = parent_joint * transformed_mat;
-
-                    parent_id = parent_bone.parent;
-                  }
-
-                  animation.transformed_matrices[i].push_back(transformed_mat);
-                }
+              // If payload is animation
+              if (payload->IsDataType("DND_ANIMATION")) {
+                AcceptAnimation(scene, entity, resource_manager);
               }
+
             }
+
             ImGui::EndDragDropTarget();
           }
         });
@@ -292,45 +255,16 @@ Ui::run(const Window& window,
         if (ImGui::BeginDragDropTarget()) {
           auto payload = ImGui::GetDragDropPayload();
 
-          if (payload->IsDataType("DND_ANIMATION") && payload != nullptr) {
-            ENTT_ID_TYPE id;
-            assert(payload->DataSize == sizeof(id));
-            memcpy(&id, payload->Data, sizeof(id));
+          if (payload != nullptr) {
 
-            auto& armature = scene.registry().get<Components::Armature>(*selected_entity);
-            const auto& animation_resource = resource_manager.animation_cache().handle(id);
-
-            if (armature.joints.size() == animation_resource->keyframes[0].bones.size()) {
-              ImGui::AcceptDragDropPayload("DND_ANIMATION");
-              auto& animation = scene.registry().emplace<Components::Animation>(*selected_entity, id, 0u);
-              auto& mesh = scene.registry().get<Components::Mesh>(*selected_entity);
-              const auto& mesh_resource = resource_manager.mesh_cache().handle(mesh.id);
-
-              animation.transformed_matrices.reserve(animation_resource->keyframes.size());
-              for (int i = 0; i < animation_resource->keyframes.size(); i++) {
-                animation.transformed_matrices.push_back(std::vector<glm::mat4>());
-                animation.transformed_matrices[i].reserve(animation_resource->keyframes[i].bones.size());
-                for (int j = 0; j < animation_resource->keyframes[i].bones.size(); j++) {
-                  int parent_id = mesh_resource->bones[j].parent;
-
-                  auto transformed_mat = animation_resource->keyframes[i].bones[j];
-
-                  while (parent_id != -1) {
-                    const bone_t& parent_bone = mesh_resource->bones[parent_id];
-                    const mat4 parent_joint = animation_resource->keyframes[i].bones[parent_id];
-
-                    transformed_mat = parent_joint * transformed_mat;
-
-                    parent_id = parent_bone.parent;
-                  }
-
-                  animation.transformed_matrices[i].push_back(transformed_mat);
-                }
-              }
+            // If payload is animation
+            if (payload->IsDataType("DND_ANIMATION")) {
+              AcceptAnimation(scene, *selected_entity, resource_manager);
             }
-        }
 
-        ImGui::EndDragDropTarget();
+          }
+
+          ImGui::EndDragDropTarget();
         }
 
         if (registry.has<Components::Transform>(*selected_entity)) {
@@ -438,6 +372,54 @@ Ui::run(const Window& window,
 
   // Rendering
   ImGui::Render();
+}
+
+void 
+Ui::AcceptAnimation(Scene& scene, const entt::entity& entity, const AnimationViewer::ResourceManager& resource_manager) {
+  auto payload = ImGui::AcceptDragDropPayload("DND_ANIMATION");
+
+  if (payload == nullptr) {
+    return;
+  }
+
+  ENTT_ID_TYPE id;
+  assert(payload->DataSize == sizeof(id));
+  memcpy(&id, payload->Data, sizeof(id));
+
+  const auto& animation_resource = resource_manager.animation_cache().handle(id);
+  auto& armature = scene.registry().get<Components::Armature>(entity);
+
+  if (armature.joints.size() != animation_resource->keyframes[0].bones.size()) {
+    return;
+  };
+
+  if (payload != nullptr) {
+    auto& animation = scene.registry().emplace<Components::Animation>(entity, id, 0u);
+    auto& mesh = scene.registry().get<Components::Mesh>(entity);
+    const auto& mesh_resource = resource_manager.mesh_cache().handle(mesh.id);
+
+    animation.transformed_matrices.reserve(animation_resource->keyframes.size());
+    for (int i = 0; i < animation_resource->keyframes.size(); i++) {
+      animation.transformed_matrices.push_back(std::vector<glm::mat4>());
+      animation.transformed_matrices[i].reserve(animation_resource->keyframes[i].bones.size());
+      for (int j = 0; j < animation_resource->keyframes[i].bones.size(); j++) {
+        int parent_id = mesh_resource->bones[j].parent;
+
+        auto transformed_mat = animation_resource->keyframes[i].bones[j];
+
+        while (parent_id != -1) {
+          const bone_t& parent_bone = mesh_resource->bones[parent_id];
+          const mat4 parent_joint = animation_resource->keyframes[i].bones[parent_id];
+
+          transformed_mat = parent_joint * transformed_mat;
+
+          parent_id = parent_bone.parent;
+        }
+
+        animation.transformed_matrices[i].push_back(transformed_mat);
+      }
+    }
+  }
 }
 
 void
