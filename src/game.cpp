@@ -85,6 +85,7 @@ Game::main_loop()
   uint16_t width, height;
   window_->get_dimensions(width, height);
   renderer_->set_back_buffer_size(width, height);
+  scene_->set_default_camera_aspect(static_cast<float>(width) / height);
   input_->run(*window_, *ui_, *scene_, *resource_manager_, delta_time);
   ui_->run(*window_, *scene_, *resource_manager_, renderer_metrics_, delta_time);
   resource_manager_->upload_dirty_buffers(*renderer_);

@@ -30,6 +30,16 @@ Scene::Scene()
 Scene::~Scene() = default;
 
 void
+Scene::set_default_camera_aspect(float aspect)
+{
+  const auto cameras = registry_.view<const Components::Camera, const Components::Transform>();
+  if (!cameras.empty()) {
+    auto& camera = registry_.get<Components::Camera>(cameras.front());
+    camera.aspect = aspect;
+  }
+}
+
+void
 Scene::update(ResourceManager& resource_manager, std::chrono::microseconds& dt)
 {
   registry_.view<Components::Animation>().each(
@@ -159,7 +169,7 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
 // It should have an accessible ResourceManager (the one below does not work), find another way.
 void
 Scene::add_mesh(ENTT_ID_TYPE id,
-                const glm::ivec2& screen_space_position,
+                const std::optional<glm::vec2>& screen_space_position,
                 ResourceManager& resource_manager)
 {
   const auto& mesh = resource_manager.mesh_cache().handle(id);
@@ -195,7 +205,22 @@ Scene::add_mesh(ENTT_ID_TYPE id,
   // identifier
   auto entity = registry_.create();
   // Add a transform component to entity
-  registry_.emplace<Components::Transform>(entity);
+  auto& transform = registry_.emplace<Components::Transform>(entity);
+  if (screen_space_position) {
+    const auto cameras = registry_.view<const Components::Camera, const Components::Transform>();
+    if (!cameras.empty()) {
+      auto& camera = registry_.get<Components::Camera>(cameras.front());
+      auto& camera_transform = registry_.get<Components::Transform>(cameras.front());
+      transform.position = camera_transform.position;
+      auto xy = std::tan(camera.fov_y * 0.5f) * (2.0f * *screen_space_position - glm::vec2(1));
+      xy *= glm::vec2(camera.aspect, -1.0f);
+      transform.position = glm::vec3(xy, -1.0f);
+      transform.position *= 10.0f;
+      transform.orientation = glm::angleAxis(glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    } else {
+      assert(false);
+    }
+  }
   // Add a mesh component to entity
   registry_.emplace<Components::Mesh>(entity, id);
   if (!armature.empty()) {

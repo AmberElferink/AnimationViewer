@@ -161,7 +161,7 @@ Renderer::render(const Scene& scene,
   back_buffer_->clear({ clear_color }, { 1.0f });
 
   mesh_uniform_t mesh_vertex_uniform{
-    glm::perspective(camera.fov_y, static_cast<float>(width_) / height_, camera.near, camera.far),
+    glm::perspective(camera.fov_y, camera.aspect, camera.near, camera.far),
     view_matrix,
     glm::mat4(),
     glm::vec4(direction_to_sun, 0),

@@ -7,6 +7,7 @@
 #include "resource.h"
 #include "scene.h"
 #include "ui.h"
+#include "window.h"
 
 using AnimationViewer::Input;
 
@@ -217,12 +218,16 @@ Input::run(const Window& window,
         const auto path = std::filesystem::path(event.drop.file);
         glm::ivec2 mouse_position;
         SDL_GetMouseState(&mouse_position.x, &mouse_position.y);
+        glm::u16vec2 resolution;
+        window.get_dimensions(resolution.x, resolution.y);
+        glm::vec2 screen_space_position =
+          static_cast<glm::vec2>(mouse_position) / static_cast<glm::vec2>(resolution);
         auto file = resource_manager.load_file(path);
         if (file.has_value() && file->second & ResourceManager::Type::Mesh) {
           if (!ui.has_mouse()) {
-            scene.add_mesh(file->first, mouse_position, resource_manager);
+            scene.add_mesh(file->first, screen_space_position, resource_manager);
           } else if (ui.mouse_over_scene_window()) {
-            scene.add_mesh(file->first, { -1, -1 }, resource_manager);
+            scene.add_mesh(file->first, std::nullopt, resource_manager);
           }
         }
 #ifdef __EMSCRIPTEN__
