@@ -283,6 +283,7 @@ void
 Renderer::create_geometry()
 {
   full_screen_quad_ = IndexedMesh::create_full_screen_quad();
+  disk_ = IndexedMesh::create_disk_3_fan(16, 1.0f);
 }
 
 std::unique_ptr<IndexedMesh>
@@ -297,7 +298,8 @@ Renderer::upload_mesh(const std::vector<vertex_t>& vertices, const std::vector<u
                              vertices.data(),
                              vertices.size() * sizeof(vertices[0]),
                              indices.data(),
-                             indices.size());
+                             indices.size(),
+                             IndexedMesh::PrimitiveTopology::TriangleList);
 }
 
 void*
@@ -319,6 +321,7 @@ Renderer::create_pipeline()
       .fragment_shader_size = sizeof(rayleigh_sky_frag_glsl) / sizeof(rayleigh_sky_frag_glsl[0]),
       .fragment_shader_entry_point = "main",
       .winding_order = Pipeline::TriangleWindingOrder::CounterClockwise,
+      .cull_mode = Pipeline::CullMode::Back,
       .depth_write = false,
       .depth_test = Pipeline::DepthTest::Less,
     };
@@ -336,11 +339,15 @@ Renderer::create_pipeline()
       .fragment_shader_size = sizeof(mesh_frag_glsl) / sizeof(mesh_frag_glsl[0]),
       .fragment_shader_entry_point = "main",
       .winding_order = Pipeline::TriangleWindingOrder::CounterClockwise,
+      .cull_mode = Pipeline::CullMode::Back,
       .depth_write = true,
       .depth_test = Pipeline::DepthTest::Less,
     };
     mesh_pipeline_ = Pipeline::create(Pipeline::Type::RasterOpenGL, info);
     mesh_vertex_uniform_buffer_ = Buffer::create(sizeof(mesh_uniform_t));
     mesh_vertex_uniform_buffer_->set_debug_name("mesh_uniform_buffer_");
+  }
+  // Joints
+  {
   }
 }

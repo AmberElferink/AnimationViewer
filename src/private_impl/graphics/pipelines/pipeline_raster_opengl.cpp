@@ -11,10 +11,9 @@ PipelineRasterOpenGL::create(const CreateInfo& info)
 {
   // Bind states for compilation
   std::optional<uint32_t> depth_test;
-  if (info.depth_test.has_value()) {
-    switch (info.depth_test.value()) {
+  switch (info.depth_test) {
     case DepthTest::Never:
-      depth_test = GL_NEVER;
+      depth_test = std::nullopt;
       break;
     case DepthTest::Always:
       depth_test = GL_ALWAYS;
@@ -40,11 +39,11 @@ PipelineRasterOpenGL::create(const CreateInfo& info)
     default:
       assert(false);
       break;
-    }
+  }
+  if (depth_test.has_value()) {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(*depth_test);
-  }
-  else {
+  } else {
     glDisable(GL_DEPTH_TEST);
   }
 
@@ -122,17 +121,40 @@ PipelineRasterOpenGL::create(const CreateInfo& info)
       assert(false);
   }
 
-  return std::make_unique<PipelineRasterOpenGL>(program, winding_order, info.depth_write, depth_test);
+  std::optional<uint32_t> cull_mode;
+  switch (info.cull_mode) {
+    case CullMode::None:
+      cull_mode = std::nullopt;
+      break;
+    case CullMode::Front:
+      cull_mode = GL_FRONT;
+      break;
+    case CullMode::Back:
+      cull_mode = GL_BACK;
+      break;
+    case CullMode::FrontAndBack:
+      cull_mode = GL_FRONT_AND_BACK;
+      break;
+    default:
+      assert(false);
+  }
+
+  return std::make_unique<PipelineRasterOpenGL>(
+    program, winding_order, cull_mode, info.depth_write, depth_test, info.blend);
 }
 
 PipelineRasterOpenGL::PipelineRasterOpenGL(uint32_t program,
                                            uint32_t winding_order,
+                                           std::optional<uint32_t> cull_mode,
                                            bool depth_write,
-                                           std::optional<uint32_t> depth_test)
+                                           std::optional<uint32_t> depth_test,
+                                           bool blend)
   : program_(program)
   , winding_order_(winding_order)
+  , cull_mode_(cull_mode)
   , depth_write_(depth_write)
   , depth_test_(depth_test)
+  , blend_(blend)
 {}
 
 PipelineRasterOpenGL::~PipelineRasterOpenGL()
@@ -166,6 +188,7 @@ void
 PipelineRasterOpenGL::bind()
 {
   glFrontFace(winding_order_);
+
   glDepthMask(depth_write_);
   if (depth_test_.has_value()) {
     glEnable(GL_DEPTH_TEST);
@@ -173,6 +196,21 @@ PipelineRasterOpenGL::bind()
   } else {
     glDisable(GL_DEPTH_TEST);
   }
+
+  if (cull_mode_.has_value()) {
+    glEnable(GL_CULL_FACE);
+    glCullFace(*cull_mode_);
+  } else {
+    glDisable(GL_CULL_FACE);
+  }
+
+  if (blend_) {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  } else {
+    glDisable(GL_BLEND);
+  }
+
   glUseProgram(program_);
 }
 

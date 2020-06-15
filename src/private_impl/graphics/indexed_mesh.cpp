@@ -1,8 +1,11 @@
 #include "indexed_mesh.h"
 
 #include <cassert>
+#include <cmath>
 
 #include <glad/glad.h>
+#include <glm/ext/scalar_constants.hpp>
+#include <glm/vec3.hpp>
 
 using namespace AnimationViewer::Graphics;
 
@@ -22,8 +25,11 @@ const float full_screen_quad_vertices[8] = {
   1.0f,
 };
 const uint16_t full_screen_quad_indices[6] = { 0, 1, 2, 2, 3, 0 };
-const std::vector<IndexedMesh::MeshAttributes> full_screen_quad_attributes = {
+const std::vector<IndexedMesh::MeshAttributes> pos_vec_2_attributes = {
   IndexedMesh::MeshAttributes{ GL_FLOAT, 2 },
+};
+const std::vector<IndexedMesh::MeshAttributes> pos_vec_3_attributes = {
+  IndexedMesh::MeshAttributes{ GL_FLOAT, 3 },
 };
 
 // 3 floats for position, 3 floats for normals //, 3 floats for tangent, 2 floats uv
@@ -98,7 +104,8 @@ IndexedMesh::create(const std::vector<MeshAttributes>& attributes,
                     const void* vertices,
                     uint32_t vertex_size,
                     const uint16_t* indices,
-                    uint16_t index_count)
+                    uint16_t index_count,
+                    PrimitiveTopology topology)
 {
   uint32_t buffers[2];
   uint32_t vao;
@@ -112,20 +119,73 @@ IndexedMesh::create(const std::vector<MeshAttributes>& attributes,
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_count * sizeof(indices[0]), indices, GL_STATIC_DRAW);
 
   return std::unique_ptr<IndexedMesh>(
-    new IndexedMesh(buffers[0], buffers[1], vao, attributes, index_count));
+    new IndexedMesh(buffers[0], buffers[1], vao, attributes, topology, index_count));
 }
 
 std::unique_ptr<IndexedMesh>
 IndexedMesh::create_full_screen_quad()
 {
   auto fullscreen_quad =
-    IndexedMesh::create(full_screen_quad_attributes,
+    IndexedMesh::create(pos_vec_2_attributes,
                         full_screen_quad_vertices,
                         sizeof(full_screen_quad_vertices),
                         full_screen_quad_indices,
-                        sizeof(full_screen_quad_indices) / sizeof(full_screen_quad_indices[0]));
+                        sizeof(full_screen_quad_indices) / sizeof(full_screen_quad_indices[0]),
+                        PrimitiveTopology::TriangleList);
 
   return fullscreen_quad;
+}
+
+std::unique_ptr<IndexedMesh>
+IndexedMesh::create_disk_3_fan(uint32_t triangle_count, float radius)
+{
+  std::vector<glm::vec3> vertices(3 * triangle_count + 1);
+  vertices[0] = glm::vec3();
+  // XZ
+  for (uint32_t i = 0; i < triangle_count; ++i) {
+    float tau = static_cast<float>(i) / triangle_count * 2.0f * glm::pi<float>();
+    vertices[i + 1] = radius * glm::vec3(std::cos(tau), 0.0f, std::sin(tau));
+  }
+  // XY
+  for (uint32_t i = 0; i < triangle_count; ++i) {
+    float tau = static_cast<float>(i) / triangle_count * 2.0f * glm::pi<float>();
+    vertices[i + triangle_count + 1] = radius * glm::vec3(std::cos(tau), std::sin(tau), 0.0f);
+  }
+  // YZ
+  for (uint32_t i = 0; i < triangle_count; ++i) {
+    float tau = static_cast<float>(i) / triangle_count * 2.0f * glm::pi<float>();
+    vertices[i + 2 * triangle_count + 1] = radius * glm::vec3(0.0f, -std::cos(tau), std::sin(tau));
+  }
+
+  std::vector<uint16_t> indices;
+  indices.reserve(3 * (triangle_count + 1));
+  indices.push_back(0);
+  // XZ plane: 360
+  for (uint32_t i = 0; i < triangle_count; ++i) {
+    indices.push_back(1 + i);
+  }
+  indices.push_back(1); // loop back around (XZ)
+  // XY plane: 270
+  for (uint32_t i = 0; i < (triangle_count * 3) / 4; ++i) {
+    indices.push_back(1 + triangle_count + i + 1);
+  }
+  // YZ plane: 360
+  for (uint32_t i = 1; i < triangle_count; ++i) {
+    indices.push_back(1 + 2 * triangle_count + i);
+  }
+  indices.push_back(2 * triangle_count + 1); // loop back around (YZ)
+  // XY plane: 90
+  for (uint32_t i = (triangle_count * 3) / 4 + 1; i < triangle_count; ++i) {
+    indices.push_back(1 + triangle_count + i);
+  }
+  indices.push_back(triangle_count + 1); // loop back around (XY)
+
+  return IndexedMesh::create(pos_vec_3_attributes,
+                             vertices.data(),
+                             vertices.size() * sizeof(vertices[0]),
+                             indices.data(),
+                             indices.size(),
+                             PrimitiveTopology::TriangleFan);
 }
 
 std::unique_ptr<IndexedMesh>
@@ -135,7 +195,8 @@ IndexedMesh::create_box()
                                  box_vertices,
                                  sizeof(box_vertices),
                                  box_indices,
-                                 sizeof(box_indices) / sizeof(box_indices[0]));
+                                 sizeof(box_indices) / sizeof(box_indices[0]),
+                                 PrimitiveTopology::TriangleList);
 
   return box;
 }
@@ -144,12 +205,14 @@ IndexedMesh::IndexedMesh(uint32_t vertex_buffer,
                          uint32_t index_buffer,
                          uint32_t vao,
                          std::vector<MeshAttributes> attributes,
+                         PrimitiveTopology topology,
                          uint16_t element_count)
 
   : vertex_buffer_(vertex_buffer)
   , index_buffer_(index_buffer)
   , vao_(vao)
   , attributes_(std::move(attributes))
+  , topology_(topology)
   , element_count_(element_count)
 {}
 
@@ -163,7 +226,7 @@ void
 IndexedMesh::draw() const
 {
   bind();
-  glDrawElements(GL_TRIANGLES, element_count_, GL_UNSIGNED_SHORT, nullptr);
+  glDrawElements(static_cast<uint32_t>(topology_), element_count_, GL_UNSIGNED_SHORT, nullptr);
 }
 
 void

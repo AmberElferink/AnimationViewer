@@ -24,6 +24,13 @@ public:
     Clockwise,
     CounterClockwise,
   };
+  enum class CullMode
+  {
+    None,
+    Front,
+    Back,
+    FrontAndBack,
+  };
   enum class DepthTest
   {
     Never,
@@ -49,8 +56,10 @@ public:
     uint32_t fragment_shader_size;
     std::string fragment_shader_entry_point;
     TriangleWindingOrder winding_order;
+    CullMode cull_mode;
     bool depth_write;
-    std::optional<DepthTest> depth_test;
+    DepthTest depth_test;
+    bool blend;
   };
   /// Factory function from which all types of pipelines can be created
   static std::unique_ptr<Pipeline> create(Type type, const CreateInfo& info);
