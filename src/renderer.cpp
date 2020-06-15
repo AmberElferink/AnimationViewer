@@ -28,10 +28,12 @@
 
 #include "private_impl/graphics/shaders/bridging_header.h"
 
+#include "private_impl/graphics/shaders/disk_vert_glsl.h"
 #include "private_impl/graphics/shaders/full_screen_vert_glsl.h"
 #include "private_impl/graphics/shaders/mesh_frag_glsl.h"
 #include "private_impl/graphics/shaders/mesh_vert_glsl.h"
 #include "private_impl/graphics/shaders/rayleigh_sky_frag_glsl.h"
+#include "private_impl/graphics/shaders/wireframe_frag_glsl.h"
 
 using namespace AnimationViewer;
 using namespace AnimationViewer::Graphics;
@@ -140,12 +142,14 @@ Renderer::render(const Scene& scene,
     scene.registry().view<const Components::Camera, const Components::Transform>();
   Components::Camera camera = Scene::default_camera();
   glm::mat4 view_matrix(1.0f);
+  glm::mat4 perspective_matrix = glm::perspective(glm::radians(60.f), 1.0f, 0.001f, 1000.0f);
   if (!cameras.empty()) {
     auto camera_entity = cameras.front();
     camera = scene.registry().get<Components::Camera>(camera_entity);
     auto transform = scene.registry().get<Components::Transform>(camera_entity);
     view_matrix =
       glm::translate(glm::transpose(glm::toMat4(transform.orientation)), -transform.position);
+    perspective_matrix = glm::perspective(camera.fov_y, camera.aspect, camera.near, camera.far);
   } else {
     assert(false);
   }
@@ -159,15 +163,6 @@ Renderer::render(const Scene& scene,
 
   // clearing screen with a color which should never be seen
   back_buffer_->clear({ clear_color }, { 1.0f });
-
-  mesh_uniform_t mesh_vertex_uniform{
-    glm::perspective(camera.fov_y, camera.aspect, camera.near, camera.far),
-    view_matrix,
-    glm::mat4(),
-    glm::vec4(direction_to_sun, 0),
-    // bone_trans_rots filled with memcpy
-    {},
-  };
 
   {
     ScopedDebugGroup group("Rayleigh Sky in Screen Space");
@@ -187,6 +182,9 @@ Renderer::render(const Scene& scene,
     mesh_pipeline_->bind();
     mesh_vertex_uniform_buffer_->bind(0);
 
+    mesh_uniform_t mesh_vertex_uniform{
+      perspective_matrix, view_matrix, glm::mat4(), glm::vec4(direction_to_sun, 0), {},
+    };
     // Get a multi component view of all entities which have component Mesh and Armature
     auto view = scene.registry().view<const Components::Transform, const Components::Mesh>();
     for (const auto& entity : view) {
@@ -255,6 +253,37 @@ Renderer::render(const Scene& scene,
       assert(res->gpu_resource);
       res->gpu_resource->bind();
       res->gpu_resource->draw();
+    }
+  }
+
+  {
+    ScopedDebugGroup group("Draw Mocap points");
+
+    auto view = scene.registry().view<const Components::MotionCaptureAnimation>();
+    for (const auto& entity : view) {
+      const auto& mocap = scene.registry().get<Components::MotionCaptureAnimation>(entity);
+      const auto& mocap_resource = resource_manager.motion_capture_cache().handle(mocap.id);
+
+      for (uint32_t i = 0; i < mocap_resource->point_count; ++i) {
+        auto point =
+          mocap_resource->frame_points[mocap.current_frame * mocap_resource->point_count + i] *
+          mocap.scale;
+
+        auto model = glm::scale(glm::vec3(mocap.scale)) * glm::translate(point);
+
+        joint_disk_uniform_buffer_->bind(0);
+
+        joint_uniform_t joint_disk_uniform = {
+          .vp = perspective_matrix * view_matrix,
+          .model = model,
+          .node_size = mocap.node_size,
+        };
+        joint_disk_uniform_buffer_->upload(&joint_disk_uniform, sizeof(joint_disk_uniform));
+
+        joint_pipeline_->bind();
+        disk_->bind();
+        disk_->draw();
+      }
     }
   }
 
@@ -349,5 +378,21 @@ Renderer::create_pipeline()
   }
   // Joints
   {
+    Pipeline::CreateInfo info{
+      .vertex_shader_binary = disk_vert_glsl,
+      .vertex_shader_size = sizeof(disk_vert_glsl) / sizeof(disk_vert_glsl[0]),
+      .vertex_shader_entry_point = "main",
+      .fragment_shader_binary = wireframe_frag_glsl,
+      .fragment_shader_size = sizeof(wireframe_frag_glsl) / sizeof(wireframe_frag_glsl[0]),
+      .fragment_shader_entry_point = "main",
+      .winding_order = Pipeline::TriangleWindingOrder::CounterClockwise,
+      .cull_mode = Pipeline::CullMode::None,
+      .depth_write = false,
+      .depth_test = Pipeline::DepthTest::Never,
+      .blend = true,
+    };
+    joint_disk_uniform_buffer_ = Buffer::create(sizeof(joint_uniform_t));
+    joint_disk_uniform_buffer_->set_debug_name("joint_vertex_uniform_buffer_");
+    joint_pipeline_ = Pipeline::create(Pipeline::Type::RasterOpenGL, info);
   }
 }

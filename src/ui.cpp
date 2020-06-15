@@ -400,6 +400,9 @@ Ui::run(const Window& window,
                 resource_manager.motion_capture_cache().handle(animation.id);
               ImGui::Text("Name: %s", current_animation->name.c_str());
 
+              ImGui::SliderFloat("Scale", &animation.scale, 0.0f, 1e6f, "%f", 10.0f);
+              ImGui::SliderFloat("Node Size", &animation.node_size, 0.0f, 100.0f, "%f", 10.0f);
+
               ImGui::InputFloat("Frame Rate",
                                 const_cast<float*>(&current_animation->frame_rate),
                                 0.0f,
@@ -546,7 +549,9 @@ Ui::entity_accept_mocap(Scene& scene,
 
   //  const auto& animation_resource = resource_manager.animation_cache().handle(id);
 
-  /*auto& mocap = */ scene.registry().emplace<Components::MotionCaptureAnimation>(entity, id);
+  auto& mocap = scene.registry().emplace<Components::MotionCaptureAnimation>(entity, id);
+  mocap.scale = 0.02f;
+  mocap.node_size = 0.5f;
 
   return true;
 }

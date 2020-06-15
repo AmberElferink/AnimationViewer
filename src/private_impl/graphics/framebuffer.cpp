@@ -56,6 +56,9 @@ Framebuffer::clear(const std::vector<glm::vec4>& color, const std::vector<float>
   for (uint8_t i = 0; i < color.size(); ++i) {
     glClearBufferfv(GL_COLOR, i, reinterpret_cast<const GLfloat*>(&color[i]));
   }
+  if (!depth.empty()) {
+    glDepthMask(true);
+  }
   for (uint8_t i = 0; i < depth.size(); ++i) {
     glClearBufferfv(GL_DEPTH, i, reinterpret_cast<const GLfloat*>(&depth[i]));
   }

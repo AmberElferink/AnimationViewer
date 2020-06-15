@@ -173,8 +173,8 @@ struct MotionCapture final : entt::loader<MotionCapture, Resource::MotionCapture
       assert(points.nbPoints() == mocap->point_count);
       for (uint32_t j = 0; j < mocap->point_count; ++j) {
         mocap->frame_points[i * mocap->point_count + j].x = points.point(j).x();
-        mocap->frame_points[i * mocap->point_count + j].y = points.point(j).y();
-        mocap->frame_points[i * mocap->point_count + j].z = points.point(j).z();
+        mocap->frame_points[i * mocap->point_count + j].y = points.point(j).z();
+        mocap->frame_points[i * mocap->point_count + j].z = points.point(j).y();
       }
     }
 

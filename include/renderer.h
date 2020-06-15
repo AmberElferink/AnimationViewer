@@ -60,5 +60,7 @@ private:
   std::unique_ptr<Pipeline> rayleigh_sky_pipeline_;
   std::unique_ptr<Buffer> mesh_vertex_uniform_buffer_;
   std::unique_ptr<Pipeline> mesh_pipeline_;
+  std::unique_ptr<Pipeline> joint_pipeline_;
+  std::unique_ptr<Buffer> joint_disk_uniform_buffer_;
 };
 } // namespace AnimationViewer::Graphics
