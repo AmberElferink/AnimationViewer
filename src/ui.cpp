@@ -62,6 +62,9 @@ Ui::Ui(SDL_Window* const window, ImGuiContext* const context)
   , show_scene_(true)
   , show_components_(true)
   , scene_window_hovered_(false)
+  , show_nodes_(false)
+  , node_size_(0.05f)
+  , node_color_(0.0f, 1.0f, 0.0f, 0.5f)
 {}
 
 void
@@ -95,6 +98,18 @@ Ui::run(const Window& window,
     ImGui::MenuItem("Assets", nullptr, &show_assets_);
     ImGui::MenuItem("Scene", nullptr, &show_scene_);
     ImGui::MenuItem("Components", nullptr, &show_components_);
+    ImGui::MenuItem("Show Nodes", nullptr, &show_nodes_);
+    if (show_nodes_) {
+      ImGui::SliderFloat("Node Size", &node_size_, 0.0f, 100.0f, "%f", 10.0f);
+      if (ImGui::BeginMenu("Node Color")) {
+        ImGui::ColorPicker4("Node Color",
+                            glm::value_ptr(node_color_),
+                            ImGuiColorEditFlags_Float | ImGuiColorEditFlags_AlphaBar |
+                              ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_InputRGB |
+                              ImGuiColorEditFlags_PickerHueBar);
+        ImGui::EndMenu();
+      }
+    }
     ImGui::EndMenu();
   }
   char frame_timing[32];
@@ -612,4 +627,22 @@ bool
 Ui::mouse_over_scene_window() const
 {
   return scene_window_hovered_;
+}
+
+bool
+AnimationViewer::Ui::draw_nodes() const
+{
+  return show_nodes_;
+}
+
+float
+AnimationViewer::Ui::node_display_size() const
+{
+  return node_size_;
+}
+
+glm::vec4
+AnimationViewer::Ui::node_display_color() const
+{
+  return node_color_;
 }

@@ -127,6 +127,48 @@ Renderer::SDLDestroyer::operator()(SDL_GLContext context) const
 
 Renderer::~Renderer() = default;
 
+std::vector<glm::mat4>
+get_interpolated_armature(const Scene& scene,
+                          const entt::entity& entity,
+                          const ResourceManager& resource_manager)
+{
+  const auto& armature = scene.registry().get<Components::Armature>(entity);
+
+  if (scene.registry().has<Components::Animation>(entity)) {
+    const auto& animation = scene.registry().get<Components::Animation>(entity);
+
+    // If the animation is at the last keyframe, render the bones without linear
+    // interpolation. Else we linearly interpolate the bones for smoother animation.
+    auto& matrices = animation.transformed_matrices;
+    if (!animation.loop && animation.current_frame == matrices.size() - 1) {
+      return animation.transformed_matrices[animation.current_frame];
+    } else {
+      const auto& current_animation = resource_manager.animation_cache().handle(animation.id);
+      auto current_frame_timestamp = animation.current_frame / current_animation->frame_rate;
+      auto next_frame_timestamp = (animation.current_frame + 1) / current_animation->frame_rate;
+
+      // Calculate the normalized interpolation factor using the current keyframe timestamp
+      // and next keyframe timestamp as the min and max values.
+      auto interpolation_factor = glm::clamp((animation.current_time - current_frame_timestamp) /
+                                               (next_frame_timestamp - current_frame_timestamp),
+                                             0.0f,
+                                             1.0f);
+
+      // Linearly interpolate each bone matrix
+      std::vector<glm::mat4> result;
+      result.reserve(matrices[animation.current_frame].size());
+      for (uint32_t i = 0; i < matrices[animation.current_frame].size(); i++) {
+        result.push_back(glm::mix(matrices[animation.current_frame][i],
+                                  matrices[(animation.current_frame + 1) % matrices.size()][i],
+                                  interpolation_factor));
+      }
+      return result;
+    }
+  } else { // if there is no animation, load default bone mat
+    return armature.joints;
+  }
+}
+
 void
 Renderer::render(const Scene& scene,
                  const ResourceManager& resource_manager,
@@ -199,49 +241,11 @@ Renderer::render(const Scene& scene,
 
       // Get the Armature component of the entity
       if (scene.registry().has<Components::Armature>(entity)) {
-        const auto& armature = scene.registry().get<Components::Armature>(entity);
-
-        if (scene.registry().has<Components::Animation>(entity)) {
-          const auto& animation = scene.registry().get<Components::Animation>(entity);
-
-          // If the animation is at the last keyframe, render the bones without linear
-          // interpolation. Else we linearly interpolate the bones for smoother animation.
-          auto& matrices = animation.transformed_matrices;
-          if (!animation.loop && animation.current_frame == matrices.size() - 1) {
-            const std::vector<glm::mat4>& bone_trans_rots =
-              animation.transformed_matrices[animation.current_frame];
-            memcpy(mesh_vertex_uniform.bone_trans_rots,
-                   bone_trans_rots.data(),
-                   bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
-          } else {
-            const auto& current_animation = resource_manager.animation_cache().handle(animation.id);
-            auto current_frame_timestamp = animation.current_frame / current_animation->frame_rate;
-            auto next_frame_timestamp =
-              (animation.current_frame + 1) / current_animation->frame_rate;
-
-            // Calculate the normalized interpolation factor using the current keyframe timestamp
-            // and next keyframe timestamp as the min and max values.
-            auto interpolation_factor =
-              glm::clamp((animation.current_time - current_frame_timestamp) /
-                           (next_frame_timestamp - current_frame_timestamp),
-                         0.0f,
-                         1.0f);
-
-            // Linearly interpolate each bone matrix
-            for (uint32_t i = 0; i < matrices[animation.current_frame].size(); i++) {
-              mesh_vertex_uniform.bone_trans_rots[i] =
-                glm::mix(matrices[animation.current_frame][i],
-                         matrices[(animation.current_frame + 1) % matrices.size()][i],
-                         interpolation_factor);
-            }
-          }
-        } else // if there is no animation, load default bone mat
-        {
-          const std::vector<glm::mat4>& bone_trans_rots = armature.joints;
-          memcpy(mesh_vertex_uniform.bone_trans_rots,
-                 bone_trans_rots.data(),
-                 bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
-        }
+        std::vector<glm::mat4> bone_trans_rots =
+          get_interpolated_armature(scene, entity, resource_manager);
+        memcpy(mesh_vertex_uniform.bone_trans_rots,
+               bone_trans_rots.data(),
+               bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
       } else {
         mesh_vertex_uniform.bone_trans_rots[0] = glm::mat4(1.0f);
       }
@@ -253,6 +257,33 @@ Renderer::render(const Scene& scene,
       assert(res->gpu_resource);
       res->gpu_resource->bind();
       res->gpu_resource->draw();
+    }
+  }
+
+  if (ui.draw_nodes()) {
+    ScopedDebugGroup group("Draw Armatures");
+    auto view = scene.registry().view<const Components::Transform, const Components::Armature>();
+    for (const auto& entity : view) {
+      for (const auto& model : get_interpolated_armature(scene, entity, resource_manager)) {
+        const auto& transform = view.get<const Components::Transform>(entity);
+
+        auto model_parent = glm::translate(transform.position) *
+                            glm::toMat4(transform.orientation) * glm::scale(transform.scale);
+
+        joint_disk_uniform_buffer_->bind(0);
+
+        joint_uniform_t joint_disk_uniform = {
+          .vp = perspective_matrix * view_matrix,
+          .model = model_parent * model,
+          .color = ui.node_display_color(),
+          .node_size = ui.node_display_size(),
+        };
+        joint_disk_uniform_buffer_->upload(&joint_disk_uniform, sizeof(joint_disk_uniform));
+
+        joint_pipeline_->bind();
+        disk_->bind();
+        disk_->draw();
+      }
     }
   }
 
@@ -276,6 +307,7 @@ Renderer::render(const Scene& scene,
         joint_uniform_t joint_disk_uniform = {
           .vp = perspective_matrix * view_matrix,
           .model = model,
+          .color = ui.node_display_color(),
           .node_size = mocap.node_size,
         };
         joint_disk_uniform_buffer_->upload(&joint_disk_uniform, sizeof(joint_disk_uniform));

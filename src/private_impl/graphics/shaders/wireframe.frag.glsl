@@ -5,12 +5,15 @@
 
 #include "bridging_header.h"
 
+layout(binding = 0, std140) uniform uniform_vertex_block_t {
+    joint_uniform_t data;
+} uniform_block;
+
 layout(location = 0) in float edge;
 layout(location = 0) out vec4 out_color;
 
-const vec3 color = vec3(0.5, 0.5, 0.5);
-
 void main() {
-    out_color.rgb = color;
+    out_color.rgb = vec3(1.0f, 1.0f, 1.0f);
     out_color.a = smoothstep(1.0f - fwidth(edge) * 2, 1.0f, edge);
+    out_color *= uniform_block.data.color;
 }

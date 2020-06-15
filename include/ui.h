@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <entt/fwd.hpp>
+#include <glm/vec4.hpp>
 
 struct ImGuiContext;
 struct SDL_Window;
@@ -48,6 +49,9 @@ public:
   bool process_event(const Window& window, const SDL_Event& event);
   bool has_mouse() const;
   bool mouse_over_scene_window() const;
+  bool draw_nodes() const;
+  float node_display_size() const;
+  glm::vec4 node_display_color() const;
 
 protected:
   Ui(SDL_Window* const window, ImGuiContext* const context);
@@ -59,5 +63,8 @@ private:
   bool show_scene_;
   bool show_components_;
   bool scene_window_hovered_;
+  bool show_nodes_;
+  float node_size_;
+  glm::vec4 node_color_;
 };
 } // namespace AnimationViewer

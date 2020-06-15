@@ -64,6 +64,7 @@ struct alignas(16) joint_uniform_t
 {
   mat4 vp;
   mat4 model;
+  vec4 color;
   float node_size;
 };
 
