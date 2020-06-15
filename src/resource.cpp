@@ -1,7 +1,11 @@
 #include "resource.h"
 
 #include <ANMFile.h>
+#include <Data.h>
+#include <Frame.h>
+#include <Header.h>
 #include <L3DFile.h>
+#include <ezc3d.h>
 #include <glm/matrix.hpp>
 
 #include "renderer.h"
@@ -17,6 +21,8 @@ enum class FileType
   L3D,
   /// Lionhead Studio Animation
   ANM,
+  /// Biomechanics standard file format
+  C3D,
   Unknown
 };
 
@@ -37,6 +43,16 @@ detect_file_type(const std::filesystem::path& path)
   if (ext == ".anm" || ext == ".Anm" || ext == ".ANm" || ext == ".aNm" || ext == ".aNM" ||
       ext == ".anM" || ext == ".AnM" || ext == ".ANM") {
     return FileType::ANM;
+  }
+  // Check for C3D
+  if (ext == ".c3d" || ext == ".C3D" || ext == ".c3D" || ext == ".c3d") {
+    FILE* file = fopen(path.string().c_str(), "rb");
+    char magic_number[2];
+    fread(magic_number, sizeof(magic_number), 1, file);
+    // Some C3D files have a bunch of 0s at the start of the file, we're not supporting those
+    if (magic_number[1] == 0x50) {
+      return FileType::C3D;
+    }
   }
   return FileType::Unknown;
 }
@@ -84,7 +100,7 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
       mesh->vertices.push_back({
         { vertex.position.x, vertex.position.y, vertex.position.z },
         { vertex.normal.x, vertex.normal.y, vertex.normal.z },
-        (float)bone_index,
+        static_cast<float>(bone_index),
       });
 
       vertex_index++;
@@ -119,23 +135,50 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
     animation->name = anm.GetHeader().name;
     animation->frame_count = anm.GetHeader().frame_count;
     animation->animation_duration = anm.GetHeader().animation_duration * 1000;
-    
-    const std::vector<openblack::anm::ANMFrame> &frames = anm.GetKeyframes();
-    animation->keyframes.reserve(animation->frame_count * sizeof(Resource::AnimationFrame));
-    for (int i = 0; i < animation->frame_count; i++)
-    {
-        Resource::AnimationFrame frame;
+    animation->frame_rate =
+      animation->frame_count / static_cast<float>(animation->animation_duration);
 
-        for (auto bone : frames[i].bones)
-        {
-            glm::mat4x3 bone4x3mat = glm::make_mat4x3(bone.matrix);
-            frame.bones.emplace_back(bone4x3mat);
-        }
-        frame.time = frames[i].time;
-        animation->keyframes.push_back(frame);
+    const std::vector<openblack::anm::ANMFrame>& frames = anm.GetKeyframes();
+    animation->keyframes.reserve(animation->frame_count * sizeof(Resource::AnimationFrame));
+    for (uint32_t i = 0; i < animation->frame_count; i++) {
+      Resource::AnimationFrame frame;
+
+      for (auto bone : frames[i].bones) {
+        glm::mat4x3 bone4x3mat = glm::make_mat4x3(bone.matrix);
+        frame.bones.emplace_back(bone4x3mat);
+      }
+      frame.time = frames[i].time;
+      animation->keyframes.push_back(frame);
     }
 
     return animation;
+  }
+};
+
+struct MotionCapture final : entt::loader<MotionCapture, Resource::MotionCapture>
+{
+  std::shared_ptr<Resource::MotionCapture> load(const std::string& name,
+                                                const ezc3d::c3d& c3d) const
+  {
+    auto mocap = std::make_shared<Resource::MotionCapture>();
+    mocap->name = name;
+    mocap->frame_rate = c3d.header().frameRate();
+    mocap->point_count = c3d.header().nb3dPoints();
+    const auto& data = c3d.data();
+    mocap->frame_points.resize(mocap->point_count * data.nbFrames());
+
+    for (uint32_t i = 0; i < data.nbFrames(); ++i) {
+      const auto& frame = data.frame(i);
+      const auto& points = frame.points();
+      assert(points.nbPoints() == mocap->point_count);
+      for (uint32_t j = 0; j < mocap->point_count; ++j) {
+        mocap->frame_points[i * mocap->point_count + j].x = points.point(j).x();
+        mocap->frame_points[i * mocap->point_count + j].y = points.point(j).z();
+        mocap->frame_points[i * mocap->point_count + j].z = points.point(j).y();
+      }
+    }
+
+    return mocap;
   }
 };
 } // namespace AnimationViewer::Loader
@@ -179,6 +222,12 @@ ResourceManager::animation_cache() const
   return animation_cache_;
 }
 
+const entt::cache<Resource::MotionCapture>&
+ResourceManager::motion_capture_cache() const
+{
+  return motion_capture_cache_;
+}
+
 std::optional<std::pair<entt::hashed_string, ResourceManager::Type>>
 ResourceManager::load_file(const std::filesystem::path& path)
 {
@@ -193,6 +242,12 @@ ResourceManager::load_file(const std::filesystem::path& path)
       auto animation = load_anm_file(path);
       if (animation.has_value()) {
         return std::make_pair(*animation, Type::Animation);
+      }
+    } break;
+    case FileType::C3D: {
+      auto mocap = load_c3d_file(path);
+      if (mocap.has_value()) {
+        return std::make_pair(*mocap, Type::MotionCapture);
       }
     } break;
     case FileType::Unknown:
@@ -218,5 +273,14 @@ ResourceManager::load_anm_file(const std::filesystem::path& path)
   anm.Open(path.string());
   auto id = entt::hashed_string{ path.string().c_str() };
   animation_cache_.load<Loader::Animation>(id, path.filename().string(), anm);
+  return std::make_optional(id);
+}
+
+std::optional<entt::hashed_string>
+ResourceManager::load_c3d_file(const std::filesystem::path& path)
+{
+  ezc3d::c3d c3d(path.string());
+  auto id = entt::hashed_string{ path.string().c_str() };
+  motion_capture_cache_.load<Loader::MotionCapture>(id, path.filename().string(), c3d);
   return std::make_optional(id);
 }

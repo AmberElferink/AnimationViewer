@@ -55,9 +55,12 @@ private:
   uint16_t height_;
   std::unique_ptr<Framebuffer> back_buffer_;
   std::unique_ptr<IndexedMesh> full_screen_quad_;
+  std::unique_ptr<IndexedMesh> disk_;
   std::unique_ptr<Buffer> rayleigh_sky_uniform_buffer_;
   std::unique_ptr<Pipeline> rayleigh_sky_pipeline_;
   std::unique_ptr<Buffer> mesh_vertex_uniform_buffer_;
   std::unique_ptr<Pipeline> mesh_pipeline_;
+  std::unique_ptr<Pipeline> joint_pipeline_;
+  std::unique_ptr<Buffer> joint_disk_uniform_buffer_;
 };
 } // namespace AnimationViewer::Graphics

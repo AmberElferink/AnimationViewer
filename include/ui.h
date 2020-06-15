@@ -5,7 +5,9 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <entt/entity/registry.hpp>
+
+#include <entt/fwd.hpp>
+#include <glm/vec4.hpp>
 
 struct ImGuiContext;
 struct SDL_Window;
@@ -34,11 +36,22 @@ public:
            ResourceManager& resource_manager,
            const std::vector<std::pair<std::string, float>>& renderer_metrics,
            std::chrono::microseconds& dt);
-  void AcceptAnimation(Scene& scene, const entt::entity& entity, const ResourceManager& resource_manager);
+  void entity_dnd_target(Scene& scene,
+                         const entt::entity& entity,
+                         const ResourceManager& resource_manager);
+  bool entity_accept_animation(Scene& scene,
+                               const entt::entity& entity,
+                               const ResourceManager& resource_manager);
+  bool entity_accept_mocap(Scene& scene,
+                           const entt::entity& entity,
+                           const ResourceManager& resource_manager);
   void draw() const;
   bool process_event(const Window& window, const SDL_Event& event);
   bool has_mouse() const;
   bool mouse_over_scene_window() const;
+  bool draw_nodes() const;
+  float node_display_size() const;
+  glm::vec4 node_display_color() const;
 
 protected:
   Ui(SDL_Window* const window, ImGuiContext* const context);
@@ -50,5 +63,8 @@ private:
   bool show_scene_;
   bool show_components_;
   bool scene_window_hovered_;
+  bool show_nodes_;
+  float node_size_;
+  glm::vec4 node_color_;
 };
 } // namespace AnimationViewer

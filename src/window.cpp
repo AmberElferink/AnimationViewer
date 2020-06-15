@@ -52,7 +52,7 @@ Window::swap() const
 }
 
 void
-Window::get_dimensions(uint16_t& width, uint16_t& height)
+Window::get_dimensions(uint16_t& width, uint16_t& height) const
 {
   int w, h;
 #if _WIN32

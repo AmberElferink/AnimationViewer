@@ -48,18 +48,28 @@ struct Mesh
 
 struct AnimationFrame
 {
-    uint32_t time;
-    std::vector<glm::mat4> bones; //bones trans_rot (no bottom row)
+  uint32_t time;
+  std::vector<glm::mat4> bones; // bones trans_rot (no bottom row)
 };
 
 struct Animation
 {
   Animation() = default;
   std::string name;
+  float frame_rate;
   uint32_t frame_count;
   uint32_t animation_duration;
   std::vector<AnimationFrame> keyframes;
-  // TODO: Load animation information here such as keyframes and timing
+};
+
+struct MotionCapture
+{
+  MotionCapture() = default;
+  std::string name;
+  float frame_rate;
+  uint32_t point_count;
+  /// Flat array of frame count * point count, with all points in one frame sequential
+  std::vector<glm::vec3> frame_points;
 };
 } // namespace Resource
 
@@ -68,8 +78,9 @@ class ResourceManager
 public:
   enum Type
   {
-    Mesh = 1 << 0,
-    Animation = 1 << 1,
+    Mesh = 1u << 0u,
+    Animation = 1u << 1u,
+    MotionCapture = 1u << 2u,
   };
 
   static std::unique_ptr<ResourceManager> create();
@@ -85,6 +96,7 @@ public:
 
   const entt::cache<Resource::Mesh>& mesh_cache() const;
   const entt::cache<Resource::Animation>& animation_cache() const;
+  const entt::cache<Resource::MotionCapture>& motion_capture_cache() const;
 
 protected:
   ResourceManager(entt::cache<Resource::Mesh>&& mesh_cache,
@@ -92,9 +104,11 @@ protected:
 
   std::optional<entt::hashed_string> load_l3d_file(const std::filesystem::path& path);
   std::optional<entt::hashed_string> load_anm_file(const std::filesystem::path& path);
+  std::optional<entt::hashed_string> load_c3d_file(const std::filesystem::path& path);
 
 private:
   entt::cache<Resource::Mesh> mesh_cache_;
   entt::cache<Resource::Animation> animation_cache_;
+  entt::cache<Resource::MotionCapture> motion_capture_cache_;
 };
 } // namespace AnimationViewer

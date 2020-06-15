@@ -300,7 +300,11 @@ static void ImGui_ImplSDL2_UpdateMousePosAndButtons()
     }
     else
     {
-        io.MousePos = ImVec2(-FLT_MAX, -FLT_MAX);
+      auto& io = ImGui::GetIO();
+      int position[2];
+      SDL_GetGlobalMouseState(&position[0], &position[1]);
+      io.MousePos.x = position[0];
+      io.MousePos.y = position[1];
     }
 
     // [2]

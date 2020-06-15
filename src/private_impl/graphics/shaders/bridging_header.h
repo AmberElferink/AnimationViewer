@@ -60,4 +60,12 @@ struct alignas(16) mesh_uniform_t
   // storage buffer
 };
 
+struct alignas(16) joint_uniform_t
+{
+  mat4 vp;
+  mat4 model;
+  vec4 color;
+  float node_size;
+};
+
 #endif // BRIDGING_HEADER_H

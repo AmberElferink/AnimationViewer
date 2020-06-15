@@ -118,6 +118,8 @@ add_subdirectory(3rd_party/glad)
 add_subdirectory(3rd_party/imgui-docking)
 add_subdirectory(3rd_party/imGuIZMO.quat-3.0)
 add_subdirectory(3rd_party/l3d)
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(3rd_party/ezc3d-Release_1.3.2)
 
 target_include_directories(AnimationViewerLib
   PUBLIC
@@ -128,7 +130,7 @@ target_include_directories(AnimationViewerLib
   3rd_party/tinygltf
   # Compiled shaders
   ${CMAKE_CURRENT_BINARY_DIR}/src)
-target_link_libraries(AnimationViewerLib PRIVATE ${LIBRARIES} l3d anm imGuIZMOquat)
+target_link_libraries(AnimationViewerLib PRIVATE ${LIBRARIES} l3d anm imGuIZMOquat ezc3d)
 target_compile_definitions(AnimationViewerLib PRIVATE SDL_MAIN_HANDLED SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS)
 if(MSVC)
   target_compile_options(AnimationViewerLib

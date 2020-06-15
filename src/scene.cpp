@@ -30,23 +30,61 @@ Scene::Scene()
 Scene::~Scene() = default;
 
 void
-Scene::update(ResourceManager& resource_manager, std::chrono::microseconds& dt) {
-  registry_.view<Components::Animation>().each([&resource_manager, &dt](auto entity, Components::Animation& animation) {
-    if (!animation.animating) {
-      return;
-    }
+Scene::set_default_camera_aspect(float aspect)
+{
+  const auto cameras = registry_.view<const Components::Camera, const Components::Transform>();
+  if (!cameras.empty()) {
+    auto& camera = registry_.get<Components::Camera>(cameras.front());
+    camera.aspect = aspect;
+  }
+}
 
-    auto& current_animation = resource_manager.animation_cache().handle(animation.id);
+void
+Scene::update(ResourceManager& resource_manager, std::chrono::microseconds& dt)
+{
+  registry_.view<Components::Animation>().each(
+    [&resource_manager, &dt](auto entity, Components::Animation& animation) {
+      if (!animation.animating) {
+        return;
+      }
 
-    animation.current_frame = ((float)animation.current_time / (float)current_animation->animation_duration) * current_animation->frame_count;
-    if (animation.current_frame > current_animation->frame_count - 1) {
-      animation.current_frame = 0;
-      animation.current_time = 0;
-      animation.animating = animation.loop;
-    }
+      const auto& current_animation = resource_manager.animation_cache().handle(animation.id);
+      animation.current_frame = animation.current_time * current_animation->frame_rate;
+      if (animation.current_frame > current_animation->frame_count - 1) {
+        if (animation.loop) {
+          animation.current_frame = 0;
+          animation.current_time = 0;
+        } else {
+          animation.current_frame = current_animation->frame_count - 1;
+        }
+        animation.animating = animation.loop;
+      }
 
-    animation.current_time += dt.count();
-  });
+      animation.current_time += dt.count();
+    });
+
+  registry_.view<Components::MotionCaptureAnimation>().each(
+    [&resource_manager, &dt](auto entity, Components::MotionCaptureAnimation& animation) {
+      if (!animation.animating) {
+        return;
+      }
+      const auto& current_animation = resource_manager.motion_capture_cache().handle(animation.id);
+      // convert frame rate to microseconds
+      animation.current_frame =
+        static_cast<float>(animation.current_time) * current_animation->frame_rate * 1e-6f;
+      auto frame_count = current_animation->frame_points.size() / current_animation->point_count;
+      if (animation.current_frame > frame_count - 1) {
+        if (animation.loop) {
+          animation.current_frame = 0;
+          animation.current_time = 0;
+        } else {
+          animation.current_frame = frame_count - 1;
+        }
+        animation.animating = animation.loop;
+      }
+
+      animation.current_time += dt.count();
+    });
 }
 
 void
@@ -141,8 +179,6 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
         }
       }
     }
-
-
   } else {
     assert(false);
   }
@@ -153,7 +189,7 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
 // It should have an accessible ResourceManager (the one below does not work), find another way.
 void
 Scene::add_mesh(ENTT_ID_TYPE id,
-                const glm::ivec2& screen_space_position,
+                const std::optional<glm::vec2>& screen_space_position,
                 ResourceManager& resource_manager)
 {
   const auto& mesh = resource_manager.mesh_cache().handle(id);
@@ -189,7 +225,22 @@ Scene::add_mesh(ENTT_ID_TYPE id,
   // identifier
   auto entity = registry_.create();
   // Add a transform component to entity
-  registry_.emplace<Components::Transform>(entity);
+  auto& transform = registry_.emplace<Components::Transform>(entity);
+  if (screen_space_position) {
+    const auto cameras = registry_.view<const Components::Camera, const Components::Transform>();
+    if (!cameras.empty()) {
+      auto& camera = registry_.get<Components::Camera>(cameras.front());
+      auto& camera_transform = registry_.get<Components::Transform>(cameras.front());
+      transform.position = camera_transform.position;
+      auto xy = std::tan(camera.fov_y * 0.5f) * (2.0f * *screen_space_position - glm::vec2(1));
+      xy *= glm::vec2(camera.aspect, -1.0f);
+      transform.position = glm::vec3(xy, -1.0f);
+      transform.position *= 10.0f;
+      transform.orientation = glm::angleAxis(glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    } else {
+      assert(false);
+    }
+  }
   // Add a mesh component to entity
   registry_.emplace<Components::Mesh>(entity, id);
   if (!armature.empty()) {

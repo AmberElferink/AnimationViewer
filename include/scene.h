@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include <entt/entity/registry.hpp>
@@ -24,6 +25,7 @@ struct Transform
 struct Camera
 {
   float fov_y;
+  float aspect;
   float near;
   float far;
 };
@@ -48,6 +50,17 @@ struct Animation
   bool loop = false;
   std::vector<std::vector<glm::mat4>> transformed_matrices;
 };
+struct MotionCaptureAnimation
+{
+  ENTT_ID_TYPE id;
+  uint32_t current_frame;
+  uint32_t current_time;
+  bool animating;
+  bool loop;
+  float scale;
+  float node_size;
+  std::vector<std::vector<glm::mat4>> transformed_matrices;
+};
 } // namespace Components
 
 class Scene
@@ -56,11 +69,12 @@ public:
   static std::unique_ptr<Scene> create();
   virtual ~Scene();
 
+  void set_default_camera_aspect(float aspect);
   /// Update scene based on SDL events
   void update(ResourceManager& resource_manager, std::chrono::microseconds& dt);
   void process_event(const SDL_Event& event, std::chrono::microseconds& dt);
   void add_mesh(ENTT_ID_TYPE id,
-                const glm::ivec2& screen_space_position,
+                const std::optional<glm::vec2>& screen_space_position,
                 AnimationViewer::ResourceManager& resource_manager);
 
   /// A scene can have any number of cameras including zero
