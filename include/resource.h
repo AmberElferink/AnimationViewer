@@ -40,6 +40,7 @@ struct Mesh
 {
   Mesh() = default;
   std::string name;
+  std::optional<glm::mat4> default_matrix;
   std::vector<vertex_t> vertices;
   std::vector<bone_t> bones;
   std::vector<uint16_t> indices;
@@ -92,7 +93,7 @@ public:
   /// Load file from path and detect type before loading as mesh or animation
   ///
   /// @path is the path of the file to load
-  std::optional<std::pair<entt::hashed_string, Type>> load_file(const std::filesystem::path& path);
+  std::vector<std::pair<entt::hashed_string, Type>> load_file(const std::filesystem::path& path);
 
   const entt::cache<Resource::Mesh>& mesh_cache() const;
   const entt::cache<Resource::Animation>& animation_cache() const;
@@ -103,6 +104,7 @@ protected:
                   entt::cache<Resource::Animation>&& animation_cache);
 
   std::optional<entt::hashed_string> load_l3d_file(const std::filesystem::path& path);
+  std::vector<std::pair<entt::hashed_string, Type>> load_fbx_file(const std::filesystem::path& path);
   std::optional<entt::hashed_string> load_anm_file(const std::filesystem::path& path);
   std::optional<entt::hashed_string> load_c3d_file(const std::filesystem::path& path);
 

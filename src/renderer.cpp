@@ -247,7 +247,11 @@ Renderer::render(const Scene& scene,
                bone_trans_rots.data(),
                bone_trans_rots.size() * sizeof(bone_trans_rots[0]));
       } else {
-        mesh_vertex_uniform.bone_trans_rots[0] = glm::mat4(1.0f);
+        for (uint32_t i = 0; i < sizeof(mesh_vertex_uniform.bone_trans_rots) /
+                                   sizeof(mesh_vertex_uniform.bone_trans_rots[0]);
+             ++i) {
+          mesh_vertex_uniform.bone_trans_rots[i] = glm::mat4(1.0f);
+        }
       }
 
       mesh_vertex_uniform_buffer_->upload(&mesh_vertex_uniform, sizeof(mesh_vertex_uniform));

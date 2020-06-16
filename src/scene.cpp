@@ -5,7 +5,9 @@
 
 #include <SDL_events.h>
 #include <entt/entt.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/transform.hpp>
 #include <glm/trigonometric.hpp>
 
 #include "resource.h"
@@ -207,9 +209,7 @@ Scene::add_mesh(ENTT_ID_TYPE id,
     while (parent_id != -1) {
       const bone_t& parent_bone = mesh->bones[parent_id];
 
-      glm::mat4 parent_trans =
-        glm::translate(glm::mat4(1.0f),
-                       { parent_bone.position.x, parent_bone.position.y, parent_bone.position.z });
+      glm::mat4 parent_trans = glm::translate(parent_bone.position);
       glm::mat4 parent_rot = glm::mat4(parent_bone.orientation);
       glm::mat4 parent_trans_rot = parent_trans * parent_rot;
       trans_rot = parent_trans_rot * trans_rot;
@@ -240,6 +240,17 @@ Scene::add_mesh(ENTT_ID_TYPE id,
     } else {
       assert(false);
     }
+  }
+
+  if (mesh->default_matrix.has_value()) {
+    glm::vec3 skew;
+    glm::vec4 perspective;
+    glm::decompose(*mesh->default_matrix,
+                   transform.scale,
+                   transform.orientation,
+                   transform.position,
+                   skew,
+                   perspective);
   }
   // Add a mesh component to entity
   registry_.emplace<Components::Mesh>(entity, id);
