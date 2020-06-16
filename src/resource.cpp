@@ -8,6 +8,8 @@
 #include <Frame.h>
 #include <Header.h>
 #include <L3DFile.h>
+#include <bvh.h>
+#include <bvhloader.h>
 #include <ezc3d.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/euler_angles.hpp>
@@ -33,6 +35,8 @@ enum class FileType
   C3D,
   /// Autodesk FBX
   FBX,
+  /// Biovision Hierarchy animation file
+  BVH,
   Unknown
 };
 
@@ -73,6 +77,17 @@ detect_file_type(const std::filesystem::path& path)
     magic_number[20] = '\0';
     if (strcmp(magic_number, "Kaydara FBX Binary  ") == 0) {
       return FileType::FBX;
+    }
+  }
+  // Check for BVH
+  if (ext == ".bvh" || ext == ".Bvh" || ext == ".BVh" || ext == ".bVh" || ext == ".bVH" ||
+      ext == ".bvH" || ext == ".BvH" || ext == ".BVH") {
+    FILE* file = fopen(path.string().c_str(), "rb");
+    char magic_number[10];
+    fread(magic_number, 1, sizeof(magic_number), file);
+    magic_number[9] = '\0';
+    if (strcmp(magic_number, "HIERARCHY") == 0) {
+      return FileType::BVH;
     }
   }
   return FileType::Unknown;
@@ -339,6 +354,31 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
 
     return animation;
   }
+
+  std::shared_ptr<Resource::Animation> load(const std::string& name, const k::Bvh& bvh) const
+  {
+    auto animation = std::make_shared<Resource::Animation>();
+    // TODO fill in these values and remove assert
+    assert(false);
+    // animation->name =
+    animation->frame_count = bvh.getNumFrames();
+    // animation->animation_duration =
+    // animation->frame_rate =
+
+    animation->keyframes.reserve(animation->frame_count);
+    for (uint32_t i = 0; i < animation->frame_count; i++) {
+    //  Resource::AnimationFrame frame;
+    //
+    //  for (auto bone : frames[i].bones) {
+    //    glm::mat4x3 bone4x3mat = glm::make_mat4x3(bone.matrix);
+    //    frame.bones.emplace_back(bone4x3mat);
+    //  }
+    //  frame.time = frames[i].time;
+    //  animation->keyframes.push_back(frame);
+    }
+
+    return animation;
+  }
 };
 
 struct MotionCapture final : entt::loader<MotionCapture, Resource::MotionCapture>
@@ -433,6 +473,12 @@ ResourceManager::load_file(const std::filesystem::path& path)
         return { std::make_pair(*animation, Type::Animation) };
       }
     } break;
+    case FileType::BVH: {
+      auto animation = load_bvh_file(path);
+      if (animation.has_value()) {
+        return { std::make_pair(*animation, Type::Animation) };
+      }
+    } break;
     case FileType::C3D: {
       auto mocap = load_c3d_file(path);
       if (mocap.has_value()) {
@@ -494,6 +540,19 @@ ResourceManager::load_anm_file(const std::filesystem::path& path)
   anm.Open(path.string());
   auto id = entt::hashed_string{ path.string().c_str() };
   animation_cache_.load<Loader::Animation>(id, path.filename().string(), anm);
+  return std::make_optional(id);
+}
+
+std::optional<entt::hashed_string>
+ResourceManager::load_bvh_file(const std::filesystem::path& path)
+{
+  k::Bvh bvh;
+  {
+    k::BvhLoader bvhLoader;
+    bvhLoader.load(&bvh, path.filename().string());
+  }
+  auto id = entt::hashed_string{ path.string().c_str() };
+  animation_cache_.load<Loader::Animation>(id, path.filename().string(), bvh);
   return std::make_optional(id);
 }
 

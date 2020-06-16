@@ -4,8 +4,6 @@
 #include <vector>
 #include <string>
 
-#include "GL/glew.h"
-
 #include "glm/glm.hpp"
 
 namespace k {
@@ -72,7 +70,7 @@ public:
 
     void printJoint(const JOINT* const joint);
     void moveTo(unsigned frame);
-    void generateGeometry(std::vector<glm::vec4>& outVertices, std::vector<GLuint>& outIndicies);
+    void generateGeometry(std::vector<glm::vec4>& outVertices, std::vector<uint32_t>& outIndicies);
 
     const JOINT* getRootJoint() const { return rootJoint; }
     unsigned getNumFrames() const { return motionData.num_frames; }

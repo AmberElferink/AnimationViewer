@@ -60,14 +60,14 @@ void Bvh::printJoint(const JOINT* const joint) {
 
 void internalGenerateGeometry(JOINT* joint,
                               std::vector<glm::vec4>& outVertices,
-                              std::vector<GLuint>& outIndicies,
+                              std::vector<uint32_t>& outIndicies,
                               int parentIndex = 0)
 {
   glm::vec4 translatedVertex = joint->matrix[3];
 
   outVertices.push_back(translatedVertex);
 
-  GLshort myindex = outVertices.size() - 1;
+  uint16_t myindex = outVertices.size() - 1;
 
   if (parentIndex != myindex) {
     outIndicies.push_back(parentIndex);
@@ -80,7 +80,7 @@ void internalGenerateGeometry(JOINT* joint,
 }
 
 void Bvh::generateGeometry(std::vector<glm::vec4>& outVertices,
-                           std::vector<GLuint>& outIndicies) {
+                           std::vector<uint32_t>& outIndicies) {
   internalGenerateGeometry(rootJoint, outVertices, outIndicies);
 }
 

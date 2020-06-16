@@ -106,6 +106,7 @@ protected:
   std::optional<entt::hashed_string> load_l3d_file(const std::filesystem::path& path);
   std::vector<std::pair<entt::hashed_string, Type>> load_fbx_file(const std::filesystem::path& path);
   std::optional<entt::hashed_string> load_anm_file(const std::filesystem::path& path);
+  std::optional<entt::hashed_string> load_bvh_file(const std::filesystem::path& path);
   std::optional<entt::hashed_string> load_c3d_file(const std::filesystem::path& path);
 
 private:
