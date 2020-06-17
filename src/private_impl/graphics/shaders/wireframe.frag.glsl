@@ -5,7 +5,7 @@
 
 #include "bridging_header.h"
 
-layout(binding = 0, std140) uniform uniform_vertex_block_t {
+layout(binding = 0, std140) uniform uniform_fragment_block_t {
     joint_uniform_t data;
 } uniform_block;
 
