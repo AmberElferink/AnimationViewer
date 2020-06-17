@@ -40,25 +40,25 @@ struct JOINT {
     unsigned int channel_start = 0;
 };
 
-typedef struct {
+struct HIERARCHY {
     JOINT* rootJoint;
     int num_channels;
-} HIERARCHY;
+};
 
-typedef struct {
+struct MOTION {
     unsigned int num_frames;
     unsigned int num_motion_channels = 0;
     float* data = nullptr;
     unsigned* joint_channel_offsets;
-} MOTION;
+};
 
-typedef struct {
+struct bvh_statistics {
     unsigned int num_hierarchies;
     unsigned int num_total_joints;
     unsigned int num_motion_channels = 0;
     unsigned int num_frames;
 
-} bvh_statistics;
+};
 
 /**
  * @brief The Bvh class
