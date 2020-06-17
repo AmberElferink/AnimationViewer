@@ -97,7 +97,7 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
     auto camera_entity = cameras.front();
     auto& transform = registry_.get<Components::Transform>(camera_entity);
 
-    float speed = 0.00001f * dt.count();
+    float speed = 0.0003f * dt.count();
     switch (event.type) {
       case SDL_JOYAXISMOTION: {
         speed *= 0.0025f;
