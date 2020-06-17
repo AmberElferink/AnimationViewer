@@ -222,12 +222,14 @@ Input::run(const Window& window,
         window.get_dimensions(resolution.x, resolution.y);
         glm::vec2 screen_space_position =
           static_cast<glm::vec2>(mouse_position) / static_cast<glm::vec2>(resolution);
-        auto file = resource_manager.load_file(path);
-        if (file.has_value() && file->second & ResourceManager::Type::Mesh) {
-          if (!ui.has_mouse()) {
-            scene.add_mesh(file->first, screen_space_position, resource_manager);
-          } else if (ui.mouse_over_scene_window()) {
-            scene.add_mesh(file->first, std::nullopt, resource_manager);
+        auto resources = resource_manager.load_file(path);
+        for (auto& [str, type] : resources) {
+          if (type & ResourceManager::Type::Mesh) {
+            if (!ui.has_mouse()) {
+              scene.add_mesh(str, screen_space_position, resource_manager);
+            } else if (ui.mouse_over_scene_window()) {
+              scene.add_mesh(str, std::nullopt, resource_manager);
+            }
           }
         }
 #ifdef __EMSCRIPTEN__

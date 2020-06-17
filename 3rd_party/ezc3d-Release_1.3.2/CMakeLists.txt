@@ -36,13 +36,7 @@ set(SRC_LIST
     src/modules/ForcePlatforms.cpp
 )
 
-set(BUILD_SHARED_LIBS TRUE CACHE BOOL "Choose if build should be a dynamic or static library")
-if (BUILD_SHARED_LIBS)
-	add_library(${PROJECT_NAME} SHARED ${SRC_LIST})
-else()
-	add_library(${PROJECT_NAME} STATIC ${SRC_LIST})
-endif()
-set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX "_debug")
+add_library(${PROJECT_NAME} STATIC ${SRC_LIST})
 
 # Remember the CMAKE_CURRENT_BINARY_DIR (important if ezc3d is used as submodule)
 set(EZC3D_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})

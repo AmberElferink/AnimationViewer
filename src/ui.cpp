@@ -62,7 +62,7 @@ Ui::Ui(SDL_Window* const window, ImGuiContext* const context)
   , show_scene_(true)
   , show_components_(true)
   , scene_window_hovered_(false)
-  , show_nodes_(false)
+  , show_nodes_(true)
   , node_size_(0.05f)
   , node_color_(0.0f, 1.0f, 0.0f, 0.5f)
 {}
@@ -231,22 +231,37 @@ Ui::run(const Window& window,
         std::string component_type;
         scene.registry().each([&i, &scene, &entity_name, &component_type, &resource_manager, this](
                                 const entt::entity& entity) {
+          bool removable = true;
           if (scene.registry().has<Components::Camera>(entity)) {
             component_type = " (Camera)";
+            removable = false;
           } else if (scene.registry().has<Components::Sky>(entity)) {
             component_type = " (Sky)";
+            removable = false;
           } else if (scene.registry().has<Components::Mesh>(entity)) {
             component_type = " (Mesh)";
           }
-          snprintf(entity_name, sizeof(entity_name), "Entity %d%s", ++i, component_type.c_str());
+          snprintf(entity_name, sizeof(entity_name), "Entity %d%s", i, component_type.c_str());
+
           if (ImGui::Selectable(entity_name, selected_entity == entity)) {
             selected_entity = entity;
           }
           // Allow dropping assets into component if an entity is selected
           entity_dnd_target(scene, entity, resource_manager);
+
+          if (removable) {
+            ImGui::SameLine();
+            snprintf(
+              entity_name, sizeof(entity_name), "Remove##Entity %d%s", i, component_type.c_str());
+            if (ImGui::Button(entity_name)) {
+              scene.registry().destroy(entity);
+            }
+          }
+          ++i;
         });
         scene_window_hovered_ = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows);
       }
+      ImGui::Columns(1);
       ImGui::EndChild();
       // Allow dropping meshes into scene
       if (ImGui::BeginDragDropTarget()) {
@@ -324,31 +339,35 @@ Ui::run(const Window& window,
           if (registry.has<Components::Armature>(*selected_entity)) {
             if (ImGui::TreeNode("Armature Component")) {
               auto& armature = registry.get<Components::Armature>(*selected_entity);
-              char matrix_name[256];
-              uint32_t i = 0;
-              for (auto& joint : armature.joints) {
-                ImGui::Text("Joint %d", i);
-                snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 0", i);
-                ImGui::InputFloat4(matrix_name,
-                                   glm::value_ptr(glm::transpose(joint)[0]),
-                                   "%.3f",
-                                   ImGuiInputTextFlags_ReadOnly);
-                snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 1", i);
-                ImGui::InputFloat4(matrix_name,
-                                   glm::value_ptr(glm::transpose(joint)[1]),
-                                   "%.3f",
-                                   ImGuiInputTextFlags_ReadOnly);
-                snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 2", i);
-                ImGui::InputFloat4(matrix_name,
-                                   glm::value_ptr(glm::transpose(joint)[2]),
-                                   "%.3f",
-                                   ImGuiInputTextFlags_ReadOnly);
-                snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 3", i);
-                ImGui::InputFloat4(matrix_name,
-                                   glm::value_ptr(glm::transpose(joint)[3]),
-                                   "%.3f",
-                                   ImGuiInputTextFlags_ReadOnly);
-                i++;
+              if (ImGui::Button("Remove")) {
+                registry.remove<Components::Armature>(*selected_entity);
+              } else {
+                char matrix_name[256];
+                uint32_t i = 0;
+                for (auto& joint : armature.joints) {
+                  ImGui::Text("Joint %d", i);
+                  snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 0", i);
+                  ImGui::InputFloat4(matrix_name,
+                                     glm::value_ptr(glm::transpose(joint)[0]),
+                                     "%.3f",
+                                     ImGuiInputTextFlags_ReadOnly);
+                  snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 1", i);
+                  ImGui::InputFloat4(matrix_name,
+                                     glm::value_ptr(glm::transpose(joint)[1]),
+                                     "%.3f",
+                                     ImGuiInputTextFlags_ReadOnly);
+                  snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 2", i);
+                  ImGui::InputFloat4(matrix_name,
+                                     glm::value_ptr(glm::transpose(joint)[2]),
+                                     "%.3f",
+                                     ImGuiInputTextFlags_ReadOnly);
+                  snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 3", i);
+                  ImGui::InputFloat4(matrix_name,
+                                     glm::value_ptr(glm::transpose(joint)[3]),
+                                     "%.3f",
+                                     ImGuiInputTextFlags_ReadOnly);
+                  i++;
+                }
               }
               ImGui::TreePop();
             }
