@@ -10,3 +10,4 @@ set(SOURCES
 
 add_library(${PROJ_NAME} STATIC ${SOURCES})
 target_include_directories(${PROJ_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(${PROJ_NAME} PUBLIC glm)
