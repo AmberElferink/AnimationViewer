@@ -24,6 +24,6 @@ void main()
   vec3 diffuseTwoSides = diffuse + diffuse_attenuation * max(dot(fragment_normal, vec3(0, 0, -1.0)), 0.0);
   vec3 eye_to_point = normalize(fragment_position);
   ray_t ray = ray_t(fragment_position + ground, reflect(eye_to_point, fragment_normal));
-  vec3 specular = vec3(0,0,0); //specular_attenuation * compute_incident_light(ray, uniform_block.data.direction_to_sun.xyz);
-  out_color = vec4(ambient + diffuseTwoSides + specular, 1);
+ /// vec3 specular = specular_attenuation * compute_incident_light(ray, uniform_block.data.direction_to_sun.xyz);
+  out_color = vec4(ambient + diffuseTwoSides, 1); //+ specular
 }
