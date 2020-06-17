@@ -97,7 +97,7 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
     auto camera_entity = cameras.front();
     auto& transform = registry_.get<Components::Transform>(camera_entity);
 
-    float speed = 0.00001f * dt.count();
+    float speed = 0.0003f * dt.count();
     switch (event.type) {
       case SDL_JOYAXISMOTION: {
         speed *= 0.0025f;
@@ -123,12 +123,12 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
             // Rotate x
           case 3:
             transform.orientation =
-              transform.orientation * glm::angleAxis(speed, glm::vec3(-1.0f, 0.0f, 0.0f));
+              transform.orientation * glm::angleAxis(speed / 30.0f, glm::vec3(-1.0f, 0.0f, 0.0f));
             break;
             // Rotate y
           case 4:
             transform.orientation =
-              glm::angleAxis(speed, glm::vec3(0.0f, -1.0f, 0.0f)) * transform.orientation;
+              glm::angleAxis(speed / 30.0f, glm::vec3(0.0f, -1.0f, 0.0f)) * transform.orientation;
             break;
         }
       } break;
@@ -163,20 +163,20 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
           } break;
           case SDLK_UP: {
             transform.orientation =
-              transform.orientation * glm::angleAxis(speed, glm::vec3(1.0f, 0.0f, 0.0f));
+              transform.orientation * glm::angleAxis(speed / 30.0f, glm::vec3(1.0f, 0.0f, 0.0f));
           } break;
           case SDLK_DOWN: {
             transform.orientation =
-              transform.orientation * glm::angleAxis(speed, glm::vec3(-1.0f, 0.0f, 0.0f));
+              transform.orientation * glm::angleAxis(speed / 30.0f, glm::vec3(-1.0f, 0.0f, 0.0f));
           } break;
 
           case SDLK_LEFT: {
             transform.orientation =
-              glm::angleAxis(speed, glm::vec3(0.0f, 1.0f, 0.0f)) * transform.orientation;
+              glm::angleAxis(speed / 30.0f, glm::vec3(0.0f, 1.0f, 0.0f)) * transform.orientation;
           } break;
           case SDLK_RIGHT: {
             transform.orientation =
-              glm::angleAxis(speed, glm::vec3(0.0f, -1.0f, 0.0f)) * transform.orientation;
+              glm::angleAxis(speed / 30.0f, glm::vec3(0.0f, -1.0f, 0.0f)) * transform.orientation;
           } break;
         }
       }
