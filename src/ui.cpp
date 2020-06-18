@@ -671,6 +671,7 @@ Ui::entity_accept_animation(Scene& scene,
         std::string bone_name = mesh_resource->bones[k].name;
         auto anim_joint_index = animation_resource->joint_names.at(bone_name);
         temp_transformed_matrices[k] = animation.transformed_matrices[i][anim_joint_index];
+        temp_transformed_matrices[k] = glm::translate(temp_transformed_matrices[k], glm::vec3(armature.joints[k][3]) / 3.0f);
       }
       animation.transformed_matrices[i] = temp_transformed_matrices;
     }

@@ -401,9 +401,9 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
     //  joint->offset.y, 
     //  joint->offset.z));
 
-    if (strcmp(joint->name.c_str(), "LeftLeg") == 0){
+    /*if (strcmp(joint->name.c_str(), "LeftLeg") == 0 && frame_nr == 1){
       __debugbreak();
-    }
+    }*/
 
     for (uint32_t j = 0; j < joint->num_channels; j++) {
       const short& channel = joint->channels_order[j];
@@ -412,15 +412,15 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
 
       // X position
       if (channel & 0x01) {
-        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, 0, 0));
+        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(value, 0, 0));
       }
       // Y position
       if (channel & 0x02) {
-        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, 0, 0));
+        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, value, 0));
       }
       // Z position
       if (channel & 0x04) {
-        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, 0, 0));
+        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, 0, value));
       }
       // X rotation
       if (channel & 0x20) {
