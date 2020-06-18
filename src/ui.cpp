@@ -553,7 +553,14 @@ Ui::entity_accept_animation(Scene& scene,
     for (uint32_t j = 0; j < animation_resource->keyframes[i].bones.size(); j++) {
       int parent_id = mesh_resource->bones[j].parent;
 
-      auto transformed_mat = animation_resource->keyframes[i].bones[j];
+      glm::mat4 transformed_mat;
+      if (!mesh_resource->bones[j].name.empty() && !animation_resource->joint_names.empty()) {
+        auto bone = mesh_resource->bones[j];
+        transformed_mat = animation_resource->keyframes[i].bones[animation_resource->joint_names.at(bone.name)];
+      }
+      else {
+        transformed_mat = animation_resource->keyframes[i].bones[j];
+      }
 
       while (parent_id != -1) {
         const bone_t& parent_bone = mesh_resource->bones[parent_id];
