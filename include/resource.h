@@ -6,12 +6,14 @@
 #include <optional>
 #include <tuple>
 #include <vector>
+#include <map>
 
 #include <entt/core/hashed_string.hpp>
 #include <entt/resource/cache.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/matrix.hpp>
 #include <glm/vec3.hpp>
+#include <bvh.h>
 
 namespace AnimationViewer {
 namespace Graphics {
@@ -33,6 +35,7 @@ struct bone_t
   uint32_t rightSibling;
   glm::vec3 position;
   glm::mat3 orientation;
+  std::string name;
 };
 
 namespace Resource {
@@ -57,10 +60,12 @@ struct Animation
 {
   Animation() = default;
   std::string name;
-  float frame_rate;
+  float frame_time;
   uint32_t frame_count;
   uint32_t animation_duration;
   std::vector<AnimationFrame> keyframes;
+  std::map<std::string, uint32_t> joint_names;
+  bool is_relative;
 };
 
 struct MotionCapture

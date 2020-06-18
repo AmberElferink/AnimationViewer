@@ -8,11 +8,9 @@
 
 namespace k {
 
-typedef struct {
+struct OFFSET {
     float x, y, z;
-} OFFSET;
-
-typedef struct JOINT JOINT;
+};
 
 struct JOINT {
     // joint name
@@ -47,6 +45,7 @@ struct HIERARCHY {
 
 struct MOTION {
     unsigned int num_frames;
+    float frame_time;
     unsigned int num_motion_channels = 0;
     float* data = nullptr;
     unsigned* joint_channel_offsets;
@@ -73,6 +72,7 @@ public:
     void generateGeometry(std::vector<glm::vec4>& outVertices, std::vector<uint32_t>& outIndicies);
 
     const JOINT* getRootJoint() const { return rootJoint; }
+    const MOTION getMotionData() const { return motionData; }
     unsigned getNumFrames() const { return motionData.num_frames; }
 private:
     JOINT* rootJoint;

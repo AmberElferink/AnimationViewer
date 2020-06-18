@@ -14,6 +14,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include "glm/gtc/matrix_transform.hpp"
 #include <glm/gtx/transform.hpp>
 #include <glm/matrix.hpp>
 #include <ofbx.h>
@@ -113,6 +114,7 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
         bone.rightSibling,
         { bone.position.x, bone.position.y, bone.position.z },
         orient,
+        "",
       });
     }
 
@@ -243,6 +245,7 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
           auto& bone = mesh_resource->bones.emplace_back();
           bone.firstChild = std::numeric_limits<uint32_t>::max();
           bone.rightSibling = std::numeric_limits<uint32_t>::max();
+          bone.name = branch.top()->name;
           auto rotation = branch.top()->getLocalRotation();
           switch (branch.top()->getRotationOrder()) {
             case ofbx::RotationOrder::EULER_XYZ:
@@ -336,8 +339,9 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
     animation->name = anm.GetHeader().name;
     animation->frame_count = anm.GetHeader().frame_count;
     animation->animation_duration = anm.GetHeader().animation_duration * 1000;
-    animation->frame_rate =
+    animation->frame_time =
       animation->frame_count / static_cast<float>(animation->animation_duration);
+    animation->is_relative = false;
 
     const std::vector<openblack::anm::ANMFrame>& frames = anm.GetKeyframes();
     animation->keyframes.reserve(animation->frame_count * sizeof(Resource::AnimationFrame));
@@ -358,26 +362,82 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
   std::shared_ptr<Resource::Animation> load(const std::string& name, const k::Bvh& bvh) const
   {
     auto animation = std::make_shared<Resource::Animation>();
-    // TODO fill in these values and remove assert
-    assert(false);
-    // animation->name =
+
+    auto root = bvh.getRootJoint();
+    auto& motion_data = bvh.getMotionData();
+
+    animation->name = name;
     animation->frame_count = bvh.getNumFrames();
-    // animation->animation_duration =
-    // animation->frame_rate =
+    animation->animation_duration = motion_data.frame_time * motion_data.num_frames * 1000;
+    animation->frame_time = motion_data.frame_time;
+    animation->is_relative = true;
 
     animation->keyframes.reserve(animation->frame_count);
     for (uint32_t i = 0; i < animation->frame_count; i++) {
-    //  Resource::AnimationFrame frame;
-    //
-    //  for (auto bone : frames[i].bones) {
-    //    glm::mat4x3 bone4x3mat = glm::make_mat4x3(bone.matrix);
-    //    frame.bones.emplace_back(bone4x3mat);
-    //  }
-    //  frame.time = frames[i].time;
-    //  animation->keyframes.push_back(frame);
+      Resource::AnimationFrame frame;
+
+      uint32_t index = 0;
+      ParseBVH(frame, animation->joint_names, motion_data, root, i, index);
+      frame.time = motion_data.frame_time * i;
+
+      animation->keyframes.push_back(frame);
     }
 
     return animation;
+  }
+
+  void ParseBVH(Resource::AnimationFrame& frame, std::map<std::string, uint32_t>& joint_names, const k::MOTION& motion_data, const k::JOINT* joint, uint32_t frame_nr, uint32_t& index) const{
+    // BVH-Loader interprets endsites as joints, we don't want this so ignore these joints.
+    if (joint->name == "EndSite") {
+      index--;
+      return;
+    }
+
+    auto channel_start_index = frame_nr + joint->channel_start;
+    glm::mat4 transformedMatrix = joint->matrix;
+
+    //transformedMatrix = glm::translate(glm::mat4(1.0), glm::vec3(
+    //  joint->offset.x, 
+    //  joint->offset.y, 
+    //  joint->offset.z));
+
+    for (uint32_t j = 0; j < joint->num_channels; j++) {
+      const short& channel = joint->channels_order[j];
+
+      float value = motion_data.data[channel_start_index + j];
+
+      // X position
+      if (channel & 0x01) {
+        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(value, 0, 0));
+      }
+      // Y position
+      if (channel & 0x02) {
+        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, value, 0));
+      }
+      // Z position
+      if (channel & 0x04) {
+        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, 0, value));
+      }
+      // X rotation
+      if (channel & 0x20) {
+        transformedMatrix = glm::rotate(transformedMatrix, glm::radians(value), glm::vec3(1, 0, 0));
+      }
+      // Y rotation
+      if (channel & 0x40) {
+        transformedMatrix = glm::rotate(transformedMatrix, glm::radians(value), glm::vec3(0, 1, 0));
+      }
+      // Z rotation
+      if (channel & 0x10) {
+        transformedMatrix = glm::rotate(transformedMatrix, glm::radians(value), glm::vec3(0, 0, 1));
+      }
+    }
+
+    frame.bones.emplace_back(transformedMatrix);
+    joint_names[joint->name] = index;
+    for (auto childjoint : joint->children) {
+      index++;
+      ParseBVH(frame, joint_names, motion_data, childjoint, frame_nr, index);
+    }
   }
 };
 
@@ -549,7 +609,7 @@ ResourceManager::load_bvh_file(const std::filesystem::path& path)
   k::Bvh bvh;
   {
     k::BvhLoader bvhLoader;
-    bvhLoader.load(&bvh, path.filename().string());
+    bvhLoader.load(&bvh, path.string());
   }
   auto id = entt::hashed_string{ path.string().c_str() };
   animation_cache_.load<Loader::Animation>(id, path.filename().string(), bvh);

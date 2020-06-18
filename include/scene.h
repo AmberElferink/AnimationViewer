@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <map>
 
 #include <entt/entity/registry.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -49,6 +50,7 @@ struct Animation
   bool animating = false;
   bool loop = false;
   std::vector<std::vector<glm::mat4>> transformed_matrices;
+  std::map<uint32_t, uint32_t> mesh_anim_joint_indices;
 };
 struct MotionCaptureAnimation
 {

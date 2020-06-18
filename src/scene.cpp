@@ -51,7 +51,7 @@ Scene::update(ResourceManager& resource_manager, std::chrono::microseconds& dt)
       }
 
       const auto& current_animation = resource_manager.animation_cache().handle(animation.id);
-      animation.current_frame = animation.current_time * current_animation->frame_rate;
+      animation.current_frame = animation.current_time * current_animation->frame_time;
       if (animation.current_frame > current_animation->frame_count - 1) {
         if (animation.loop) {
           animation.current_frame = 0;

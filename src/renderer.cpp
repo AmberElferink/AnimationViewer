@@ -10,6 +10,9 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/matrix.hpp>
 
+#include <iostream>
+#include <glm/gtx/string_cast.hpp>
+
 #if __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
@@ -144,8 +147,8 @@ get_interpolated_armature(const Scene& scene,
       return animation.transformed_matrices[animation.current_frame];
     } else {
       const auto& current_animation = resource_manager.animation_cache().handle(animation.id);
-      auto current_frame_timestamp = animation.current_frame / current_animation->frame_rate;
-      auto next_frame_timestamp = (animation.current_frame + 1) / current_animation->frame_rate;
+      auto current_frame_timestamp = animation.current_frame / current_animation->frame_time;
+      auto next_frame_timestamp = (animation.current_frame + 1) / current_animation->frame_time;
 
       // Calculate the normalized interpolation factor using the current keyframe timestamp
       // and next keyframe timestamp as the min and max values.
@@ -158,9 +161,19 @@ get_interpolated_armature(const Scene& scene,
       std::vector<glm::mat4> result;
       result.reserve(matrices[animation.current_frame].size());
       for (uint32_t i = 0; i < matrices[animation.current_frame].size(); i++) {
-        result.push_back(glm::mix(matrices[animation.current_frame][i],
-                                  matrices[(animation.current_frame + 1) % matrices.size()][i],
-                                  interpolation_factor));
+        if (current_animation->is_relative) {
+          auto absolute_joint = armature.joints[i] * matrices[animation.current_frame][i];
+          auto next_absolute_joint = armature.joints[i] * matrices[(animation.current_frame + 1) % matrices.size()][i];
+          /*result.push_back(glm::mix(absolute_joint,
+                            next_absolute_joint,
+                            interpolation_factor));*/
+          result.push_back(absolute_joint);
+        }
+        else {
+          result.push_back(glm::mix(matrices[animation.current_frame][i],
+                          matrices[(animation.current_frame + 1) % matrices.size()][i],
+                          interpolation_factor));
+        }
       }
       return result;
     }
@@ -243,6 +256,12 @@ Renderer::render(const Scene& scene,
       if (scene.registry().has<Components::Armature>(entity)) {
         std::vector<glm::mat4> bone_trans_rots =
           get_interpolated_armature(scene, entity, resource_manager);
+
+        /*std::cout << "New Matrix" << std::endl;
+        for (auto mat : bone_trans_rots) {
+          std::cout << glm::to_string(mat) << std::endl;
+        }*/
+
         memcpy(mesh_vertex_uniform.bone_trans_rots,
                bone_trans_rots.data(),
                bone_trans_rots.size() * sizeof(bone_trans_rots[0]));

@@ -70,6 +70,7 @@ void BvhLoader::loadMotion(Bvh* bvh, std::istream& stream) {
     } else if (trim(tmp) == "Frame") {
       float frame_time;
       stream >> tmp >> frame_time;
+      motionData.frame_time = frame_time;
 
       int num_frames   = motionData.num_frames;
       int num_channels = motionData.num_motion_channels;

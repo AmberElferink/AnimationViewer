@@ -339,13 +339,27 @@ Ui::run(const Window& window,
           if (registry.has<Components::Armature>(*selected_entity)) {
             if (ImGui::TreeNode("Armature Component")) {
               auto& armature = registry.get<Components::Armature>(*selected_entity);
+
               if (ImGui::Button("Remove")) {
                 registry.remove<Components::Armature>(*selected_entity);
               } else {
                 char matrix_name[256];
                 uint32_t i = 0;
                 for (auto& joint : armature.joints) {
-                  ImGui::Text("Joint %d", i);
+                  if (registry.has<Components::Mesh>(*selected_entity)) {
+                    auto& mesh = registry.get<Components::Mesh>(*selected_entity);
+                    const auto& armature_resource = resource_manager.mesh_cache().handle(mesh.id);
+                    if (armature_resource->bones[i].name.empty()) {
+                      ImGui::Text("Joint %d", i);
+                    }
+                    else {
+                      ImGui::Text("Joint %s", armature_resource->bones[i].name.c_str());
+                    }
+                  }
+                  else {
+                    ImGui::Text("Joint %d", i);
+                  }
+                  
                   snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 0", i);
                   ImGui::InputFloat4(matrix_name,
                                      glm::value_ptr(glm::transpose(joint)[0]),
@@ -379,7 +393,7 @@ Ui::run(const Window& window,
                 resource_manager.animation_cache().handle(animation.id);
               ImGui::Text("Name: %s", current_animation->name.c_str());
               ImGui::InputFloat("Frame Rate",
-                                const_cast<float*>(&current_animation->frame_rate),
+                                const_cast<float*>(&current_animation->frame_time),
                                 0.0f,
                                 0.0f,
                                 "%.8f",
@@ -543,14 +557,33 @@ Ui::entity_accept_animation(Scene& scene,
 
       while (parent_id != -1) {
         const bone_t& parent_bone = mesh_resource->bones[parent_id];
-        const mat4 parent_joint = animation_resource->keyframes[i].bones[parent_id];
 
-        transformed_mat = parent_joint * transformed_mat;
+        if (!mesh_resource->bones[parent_id].name.empty() && !animation_resource->joint_names.empty()) {
+          const mat4 parent_joint = animation_resource->keyframes[i].bones[animation_resource->joint_names.at(parent_bone.name)];
+          transformed_mat = parent_joint * transformed_mat;
 
-        parent_id = parent_bone.parent;
+          parent_id = parent_bone.parent;
+        }
+        else {
+          const mat4 parent_joint = animation_resource->keyframes[i].bones[parent_id];
+          transformed_mat = parent_joint * transformed_mat;
+
+          parent_id = parent_bone.parent;
+        }
       }
 
       animation.transformed_matrices[i].push_back(transformed_mat);
+    }
+
+    if (!mesh_resource->bones[0].name.empty() && !animation_resource->joint_names.empty()) {
+      std::vector<mat4> temp_transformed_matrices;
+      temp_transformed_matrices.resize(animation_resource->keyframes[i].bones.size());
+      for (uint32_t k = 0; k < mesh_resource->bones.size(); k++) {
+        std::string bone_name = mesh_resource->bones[k].name;
+        auto anim_joint_index = animation_resource->joint_names.at(bone_name);
+        temp_transformed_matrices[k] = animation.transformed_matrices[i][anim_joint_index];
+      }
+      animation.transformed_matrices[i] = temp_transformed_matrices;
     }
   }
 
