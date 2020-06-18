@@ -388,102 +388,106 @@ Ui::run(const Window& window,
           }
 
           if (registry.has<Components::Animation>(*selected_entity)) {
-              if (ImGui::TreeNode("Animation Component")) {
-                  auto& animation = registry.get<Components::Animation>(*selected_entity);
-                  const auto& current_animation =
-                      resource_manager.animation_cache().handle(animation.id);
-                  ImGui::Text("Name: %s", current_animation->name.c_str());
-                  ImGui::InputFloat("Frame Rate",
-                      const_cast<float*>(&current_animation->frame_time),
-                      0.0f,
-                      0.0f,
-                      "%.8f",
-                      ImGuiInputTextFlags_ReadOnly);
-                  uint32_t slider_min = 0;
-                  uint32_t frame_count = current_animation->frame_count - 1;
-                  if (ImGui::SliderScalar("Frame",
-                      ImGuiDataType_U32,
-                      &animation.current_frame,
-                      &slider_min,
-                      &frame_count)) {
-                      auto time_per_frame = static_cast<float>(current_animation->animation_duration) /
-                          static_cast<float>(current_animation->frame_count);
-                      animation.current_time = time_per_frame * animation.current_frame;
-                  }
-                  if (!animation.animating) {
-                      bool reset = false;
-                      if (animation.current_frame == 0) {
-                          if (ImGui::Button("Start")) {
-                              reset = true;
-                          }
-                      }
-                      else {
-                          if (ImGui::Button("Reset")) {
-                              reset = true;
-                          }
-                      }
-                      if (animation.current_frame < current_animation->frame_count - 1) {
-                          if (ImGui::Button("Resume")) {
-                              animation.animating = true;
-                          }
-                      }
-                      if (reset) {
-                          animation.current_frame = 0;
-                          animation.current_time = 0;
-                          animation.animating = true;
-                      }
-                  }
-                  if (animation.animating) {
-                      if (ImGui::Button("Pause")) {
-                          animation.animating = false;
-                      }
-                  }
-                  ImGui::Checkbox("Animating", &animation.animating);
-                  ImGui::Checkbox("Loop", &animation.loop);
-
-                  char matrix_name[256];
-                  uint32_t i = 0;
-                  for (auto& joint : animation.transformed_matrices[animation.current_frame]) {
-                      if (registry.has<Components::Mesh>(*selected_entity)) {
-                          auto& mesh = registry.get<Components::Mesh>(*selected_entity);
-                          auto& armature_resource = resource_manager.mesh_cache().handle(mesh.id);
-                          if (armature_resource->bones[i].name.empty()) {
-                              ImGui::Text("Joint %d", i);
-                          }
-                          else {
-                              ImGui::Text("Joint %s", armature_resource->bones[i].name.c_str());
-                          }
-                      }
-                      else {
-                          ImGui::Text("Joint %d", i);
-                      }
-
-                      snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 0", i);
-                      ImGui::InputFloat4(matrix_name,
-                          glm::value_ptr(glm::transpose(joint)[0]),
-                          "%.3f",
-                          ImGuiInputTextFlags_ReadOnly);
-                      snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 1", i);
-                      ImGui::InputFloat4(matrix_name,
-                          glm::value_ptr(glm::transpose(joint)[1]),
-                          "%.3f",
-                          ImGuiInputTextFlags_ReadOnly);
-                      snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 2", i);
-                      ImGui::InputFloat4(matrix_name,
-                          glm::value_ptr(glm::transpose(joint)[2]),
-                          "%.3f",
-                          ImGuiInputTextFlags_ReadOnly);
-                      snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 3", i);
-                      ImGui::InputFloat4(matrix_name,
-                          glm::value_ptr(glm::transpose(joint)[3]),
-                          "%.3f",
-                          ImGuiInputTextFlags_ReadOnly);
-                      i++;
-                  }
-                  ImGui::TreePop();
+            if (ImGui::TreeNode("Animation Component")) {
+              if (ImGui::Button("Remove##Animation")) {
+                registry.remove<Components::Animation>(*selected_entity);
               }
-       
+              else {
+                auto& animation = registry.get<Components::Animation>(*selected_entity);
+                const auto& current_animation =
+                  resource_manager.animation_cache().handle(animation.id);
+                ImGui::Text("Name: %s", current_animation->name.c_str());
+                ImGui::InputFloat("Frame Rate",
+                  const_cast<float*>(&current_animation->frame_time),
+                  0.0f,
+                  0.0f,
+                  "%.8f",
+                  ImGuiInputTextFlags_ReadOnly);
+                uint32_t slider_min = 0;
+                uint32_t frame_count = current_animation->frame_count - 1;
+                if (ImGui::SliderScalar("Frame",
+                  ImGuiDataType_U32,
+                  &animation.current_frame,
+                  &slider_min,
+                  &frame_count)) {
+                  auto time_per_frame = static_cast<float>(current_animation->animation_duration) /
+                    static_cast<float>(current_animation->frame_count);
+                  animation.current_time = time_per_frame * animation.current_frame;
+                }
+                if (!animation.animating) {
+                  bool reset = false;
+                  if (animation.current_frame == 0) {
+                    if (ImGui::Button("Start")) {
+                      reset = true;
+                    }
+                  }
+                  else {
+                    if (ImGui::Button("Reset")) {
+                      reset = true;
+                    }
+                  }
+                  if (animation.current_frame < current_animation->frame_count - 1) {
+                    if (ImGui::Button("Resume")) {
+                      animation.animating = true;
+                    }
+                  }
+                  if (reset) {
+                    animation.current_frame = 0;
+                    animation.current_time = 0;
+                    animation.animating = true;
+                  }
+                }
+                if (animation.animating) {
+                  if (ImGui::Button("Pause")) {
+                    animation.animating = false;
+                  }
+                }
+                ImGui::Checkbox("Animating", &animation.animating);
+                ImGui::Checkbox("Loop", &animation.loop);
+
+                char matrix_name[256];
+                uint32_t i = 0;
+                for (auto& joint : animation.transformed_matrices[animation.current_frame]) {
+                  if (registry.has<Components::Mesh>(*selected_entity)) {
+                    auto& mesh = registry.get<Components::Mesh>(*selected_entity);
+                    auto& armature_resource = resource_manager.mesh_cache().handle(mesh.id);
+                    if (armature_resource->bones[i].name.empty()) {
+                      ImGui::Text("Joint %d", i);
+                    }
+                    else {
+                      ImGui::Text("Joint %s", armature_resource->bones[i].name.c_str());
+                    }
+                  }
+                  else {
+                    ImGui::Text("Joint %d", i);
+                  }
+
+                  snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 0", i);
+                  ImGui::InputFloat4(matrix_name,
+                    glm::value_ptr(glm::transpose(joint)[0]),
+                    "%.3f",
+                    ImGuiInputTextFlags_ReadOnly);
+                  snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 1", i);
+                  ImGui::InputFloat4(matrix_name,
+                    glm::value_ptr(glm::transpose(joint)[1]),
+                    "%.3f",
+                    ImGuiInputTextFlags_ReadOnly);
+                  snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 2", i);
+                  ImGui::InputFloat4(matrix_name,
+                    glm::value_ptr(glm::transpose(joint)[2]),
+                    "%.3f",
+                    ImGuiInputTextFlags_ReadOnly);
+                  snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 3", i);
+                  ImGui::InputFloat4(matrix_name,
+                    glm::value_ptr(glm::transpose(joint)[3]),
+                    "%.3f",
+                    ImGuiInputTextFlags_ReadOnly);
+                  i++;
+                }
+              }
+              ImGui::TreePop();
             }
+          }
           if (registry.has<Components::MotionCaptureAnimation>(*selected_entity)) {
             if (ImGui::TreeNode("Motion Capture Animation Component")) {
               auto& animation = registry.get<Components::MotionCaptureAnimation>(*selected_entity);
@@ -598,8 +602,8 @@ Ui::run(const Window& window,
 
 bool
 Ui::entity_accept_animation(Scene& scene,
-                            const entt::entity& entity,
-                            const AnimationViewer::ResourceManager& resource_manager)
+  const entt::entity& entity,
+  const AnimationViewer::ResourceManager& resource_manager)
 {
   if (!scene.registry().has<Components::Armature>(entity)) {
     return false;
@@ -671,7 +675,40 @@ Ui::entity_accept_animation(Scene& scene,
         std::string bone_name = mesh_resource->bones[k].name;
         auto anim_joint_index = animation_resource->joint_names.at(bone_name);
         temp_transformed_matrices[k] = animation.transformed_matrices[i][anim_joint_index];
-        temp_transformed_matrices[k] = glm::translate(temp_transformed_matrices[k], glm::vec3(armature.joints[k][3]) / 3.0f);
+
+        /*if (strcmp(bone_name.c_str(), "LeftLeg") == 0) {
+          __debugbreak();
+        }*/
+
+        auto current_joint_index = k;
+        mat4 transformed_mat = glm::identity<glm::mat4>();
+        while (current_joint_index != -1) {
+          glm::mat4 trans = glm::translate(mesh_resource->bones[current_joint_index].position);
+          glm::mat4 rot = glm::mat4(mesh_resource->bones[current_joint_index].orientation);
+          glm::mat4 trans_rot = trans * rot;
+
+          std::string temp_bone_name = mesh_resource->bones[current_joint_index].name;
+          auto temp_anim_joint_index = animation_resource->joint_names.at(temp_bone_name);
+          if (current_joint_index == k) {
+            trans_rot = trans_rot * animation.transformed_matrices[i][temp_anim_joint_index];
+          }
+
+          transformed_mat = trans_rot * transformed_mat;
+
+          current_joint_index = mesh_resource->bones[current_joint_index].parent;
+        }
+
+        temp_transformed_matrices[k] = transformed_mat;
+
+        //vec3 inverse_t = -armature.joints[k][3];
+
+        ////temp_transformed_matrices[k] = glm::translate(temp_transformed_matrices[k], glm::vec3(armature.joints[k][3]) / 3.0f);
+
+        //temp_transformed_matrices[k] = glm::translate(temp_transformed_matrices[k], inverse_t / 3.0f);
+
+        //temp_transformed_matrices[k] = armature.joints[k] * temp_transformed_matrices[k];
+
+        //temp_transformed_matrices[k] = glm::translate(temp_transformed_matrices[k], -inverse_t / 3.0f);
       }
       animation.transformed_matrices[i] = temp_transformed_matrices;
     }

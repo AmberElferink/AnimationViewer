@@ -161,19 +161,19 @@ get_interpolated_armature(const Scene& scene,
       std::vector<glm::mat4> result;
       result.reserve(matrices[animation.current_frame].size());
       for (uint32_t i = 0; i < matrices[animation.current_frame].size(); i++) {
-        if (current_animation->is_relative) {
-          auto absolute_joint = matrices[animation.current_frame][i] * armature.joints[i];
-          //auto next_absolute_joint = armature.joints[i] * matrices[(animation.current_frame + 1) % matrices.size()][i];
-          /*result.push_back(glm::mix(absolute_joint,
-                            next_absolute_joint,
-                            interpolation_factor));*/
-          result.push_back(absolute_joint);
-        }
-        else {
+        //if (current_animation->is_relative) {
+        //  
+        //  //auto next_absolute_joint = armature.joints[i] * matrices[(animation.current_frame + 1) % matrices.size()][i];
+        //  /*result.push_back(glm::mix(absolute_joint,
+        //                    next_absolute_joint,
+        //                    interpolation_factor));*/
+        //  result.push_back(absolute_joint);
+        //}
+        //else {
           result.push_back(glm::mix(matrices[animation.current_frame][i],
                           matrices[(animation.current_frame + 1) % matrices.size()][i],
                           interpolation_factor));
-        }
+        //}
       }
       return result;
     }
