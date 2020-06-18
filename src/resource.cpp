@@ -302,20 +302,20 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
           branch.pop();
         }
 
-        for (int j = 0; j < cluster->getIndicesCount(); ++j) {
-          assert(cluster->getIndices()[j] < geometry->getVertexCount());
-          // TODO: We don't support blending yet
-          assert(cluster->getWeights()[i] <= 1);
+for (int j = 0; j < cluster->getIndicesCount(); ++j) {
+  assert(cluster->getIndices()[j] < geometry->getVertexCount());
+  // TODO: We don't support blending yet
+  assert(cluster->getWeights()[i] <= 1);
 
-          auto& vertex = mesh_resource->vertices[cluster->getIndices()[j]];
-          vertex.bone_id = seen_links[cluster->getLink()->id];
-        }
+  auto& vertex = mesh_resource->vertices[cluster->getIndices()[j]];
+  vertex.bone_id = seen_links[cluster->getLink()->id];
+}
       }
       // Convert from absolute to relative to joint
       for (auto& vertex : mesh_resource->vertices) {
         glm::mat4 matrix(1.0f);
         for (uint32_t bone_id = vertex.bone_id; bone_id < std::numeric_limits<uint32_t>::max();
-             bone_id = mesh_resource->bones[bone_id].parent) {
+          bone_id = mesh_resource->bones[bone_id].parent) {
           auto& bone = mesh_resource->bones[bone_id];
           glm::mat4 rot = glm::mat4(bone.orientation);
           glm::mat4 trans = glm::translate(bone.position);
@@ -333,7 +333,7 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
 struct Animation final : entt::loader<Animation, Resource::Animation>
 {
   std::shared_ptr<Resource::Animation> load(const std::string& name,
-                                            const openblack::anm::ANMFile& anm) const
+    const openblack::anm::ANMFile& anm) const
   {
     auto animation = std::make_shared<Resource::Animation>();
     animation->name = anm.GetHeader().name;
@@ -386,20 +386,24 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
     return animation;
   }
 
-  void ParseBVH(Resource::AnimationFrame& frame, std::map<std::string, uint32_t>& joint_names, const k::MOTION& motion_data, const k::JOINT* joint, uint32_t frame_nr, uint32_t& index) const{
+  void ParseBVH(Resource::AnimationFrame& frame, std::map<std::string, uint32_t>& joint_names, const k::MOTION& motion_data, const k::JOINT* joint, uint32_t frame_nr, uint32_t& index) const {
     // BVH-Loader interprets endsites as joints, we don't want this so ignore these joints.
     if (joint->name == "EndSite") {
       index--;
       return;
     }
 
-    auto channel_start_index = frame_nr + joint->channel_start;
+    auto channel_start_index = (frame_nr * motion_data.num_motion_channels) + joint->channel_start;
     glm::mat4 transformedMatrix = joint->matrix;
 
     //transformedMatrix = glm::translate(glm::mat4(1.0), glm::vec3(
     //  joint->offset.x, 
     //  joint->offset.y, 
     //  joint->offset.z));
+
+    if (strcmp(joint->name.c_str(), "LeftLeg") == 0){
+      __debugbreak();
+    }
 
     for (uint32_t j = 0; j < joint->num_channels; j++) {
       const short& channel = joint->channels_order[j];
@@ -408,15 +412,15 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
 
       // X position
       if (channel & 0x01) {
-        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(value, 0, 0));
+        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, 0, 0));
       }
       // Y position
       if (channel & 0x02) {
-        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, value, 0));
+        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, 0, 0));
       }
       // Z position
       if (channel & 0x04) {
-        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, 0, value));
+        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, 0, 0));
       }
       // X rotation
       if (channel & 0x20) {

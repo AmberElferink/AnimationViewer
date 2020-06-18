@@ -251,6 +251,7 @@ Scene::add_mesh(ENTT_ID_TYPE id,
                    transform.position,
                    skew,
                    perspective);
+    transform.scale = glm::vec3(1.0f, 1.0f, 1.0f);
   }
   // Add a mesh component to entity
   registry_.emplace<Components::Mesh>(entity, id);
