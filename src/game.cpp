@@ -111,11 +111,11 @@ em_main_loop_callback(void* arg)
 void
 Game::run()
 {
-  resource_manager_->load_file("D:\\Thijs\\Downloads\\cmuconvert-mb2-01-09\\01\\test.bvh");
-  auto resources = resource_manager_->load_file("D:\\Thijs\\Downloads\\cmuconvert-mb2-01-09\\01\\cesiumman3.fbx");
-  for (auto& [str, type] : resources) {
-      scene_->add_mesh(str, std::nullopt, *resource_manager_);
-  }
+  // resource_manager_->load_file("D:\\Thijs\\Downloads\\cmuconvert-mb2-01-09\\01\\test.bvh");
+  // auto resources = resource_manager_->load_file("D:\\Thijs\\Downloads\\cmuconvert-mb2-01-09\\01\\cesiumman3.fbx");
+  // for (auto& [str, type] : resources) {
+  //     scene_->add_mesh(str, std::nullopt, *resource_manager_);
+  // }
 
   frame_end_ = std::chrono::high_resolution_clock::now();
 #if __EMSCRIPTEN__
