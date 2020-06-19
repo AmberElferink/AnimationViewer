@@ -677,23 +677,24 @@ Ui::entity_accept_animation(Scene& scene,
           __debugbreak();
         }*/
 
-        auto current_joint_index = k;
-        mat4 transformed_mat = glm::identity<glm::mat4>();
-        while (current_joint_index < std::numeric_limits<uint32_t>::max()) {
-          glm::mat4 trans = glm::translate(mesh_resource->bones[current_joint_index].position);
-          glm::mat4 rot = glm::mat4(mesh_resource->bones[current_joint_index].orientation);
-          glm::mat4 trans_rot = trans * rot;
+//        auto current_joint_index = k;
+//        mat4 transformed_mat = glm::identity<glm::mat4>();
+//        while (current_joint_index < std::numeric_limits<uint32_t>::max()) {
+//          glm::mat4 trans = glm::translate(mesh_resource->bones[current_joint_index].position);
+//          glm::mat4 rot = glm::mat4(mesh_resource->bones[current_joint_index].orientation);
+//          trans = glm::mat4(1.0f);
+//          glm::mat4 trans_rot = trans * rot;
+//
+//          std::string temp_bone_name = mesh_resource->bones[current_joint_index].name;
+//          auto temp_anim_joint_index = animation_resource->joint_names.at(temp_bone_name);
+//          trans_rot = trans_rot * animation.transformed_matrices[i][temp_anim_joint_index];
+//
+//          transformed_mat = trans_rot * transformed_mat;
+//
+//          current_joint_index = mesh_resource->bones[current_joint_index].parent;
+//        }
 
-          std::string temp_bone_name = mesh_resource->bones[current_joint_index].name;
-          auto temp_anim_joint_index = animation_resource->joint_names.at(temp_bone_name);
-          trans_rot = trans_rot * animation.transformed_matrices[i][temp_anim_joint_index];
-
-          transformed_mat = trans_rot * transformed_mat;
-
-          current_joint_index = mesh_resource->bones[current_joint_index].parent;
-        }
-
-        temp_transformed_matrices[k] = transformed_mat;
+//        temp_transformed_matrices[k] = transformed_mat;
 
         //vec3 inverse_t = -armature.joints[k][3];
 

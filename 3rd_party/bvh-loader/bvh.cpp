@@ -90,22 +90,22 @@ void moveJoint(JOINT* joint, MOTION* motionData, int frame_starts_index) {
 
   // postavljamo prvo lokalnu mat na offset poziciju
   joint->matrix = glm::translate(glm::mat4(1.0),
-                                 glm::vec3(joint->offset.x,
-                                           joint->offset.y,
-                                           joint->offset.z));
+                                 glm::vec3(joint->offset.x / 30.0f,
+                                           joint->offset.y / 30.0f,
+                                           joint->offset.z / 30.0f));
 
   for(int i = 0; i < joint->num_channels; i++) {
     const short& channel = joint->channels_order[i];
 
     float value = motionData->data[start_index + i];
     if (channel & Xposition) {
-      joint->matrix = glm::translate(joint->matrix, glm::vec3(value, 0, 0));
+      joint->matrix = glm::translate(joint->matrix, glm::vec3(value / 30.0f, 0, 0));
     }
     if (channel & Yposition) {
-      joint->matrix = glm::translate(joint->matrix, glm::vec3(0, value, 0));
+      joint->matrix = glm::translate(joint->matrix, glm::vec3(0, value / 30.0f, 0));
     }
     if (channel & Zposition) {
-      joint->matrix = glm::translate(joint->matrix, glm::vec3(0, 0, value));
+      joint->matrix = glm::translate(joint->matrix, glm::vec3(0, 0, value / 30.0f));
     }
 
     if (channel & Xrotation) {

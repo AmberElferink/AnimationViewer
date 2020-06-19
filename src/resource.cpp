@@ -359,11 +359,10 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
     return animation;
   }
 
-  std::shared_ptr<Resource::Animation> load(const std::string& name, const k::Bvh& bvh) const
+  std::shared_ptr<Resource::Animation> load(const std::string& name, k::Bvh& bvh) const
   {
     auto animation = std::make_shared<Resource::Animation>();
 
-    auto root = bvh.getRootJoint();
     auto& motion_data = bvh.getMotionData();
 
     animation->name = name;
@@ -372,13 +371,42 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
     animation->animation_duration = animation->frame_time * motion_data.num_frames;
     animation->is_relative = true;
 
+    uint32_t index = 0;
     animation->keyframes.reserve(animation->frame_count);
+    std::stack<const k::JOINT*> joints;
+    joints.push(bvh.getRootJoint());
+    while (!joints.empty()) {
+      auto joint = joints.top();
+      joints.pop();
+      for (auto child: joint->children) {
+        joints.push(child);
+      }
+      if (joint->name != "EndSite") {
+        animation->joint_names[joint->name] = index++;
+      }
+    }
+
+    auto frame_mats = std::vector<glm::mat4>(index);
+
     for (uint32_t i = 0; i < animation->frame_count; i++) {
       Resource::AnimationFrame frame;
 
-      uint32_t index = 0;
-      ParseBVH(frame, animation->joint_names, motion_data, root, i, index);
+      bvh.moveTo(i);
+
+      joints.emplace(bvh.getRootJoint());
+      while (!joints.empty()) {
+        auto joint = joints.top();
+        joints.pop();
+        for (auto child: joint->children) {
+          joints.emplace(child);
+        }
+        if (joint->name != "EndSite") {
+          frame_mats[animation->joint_names[joint->name]] = joint->matrix;
+        }
+      }
+
       frame.time = motion_data.frame_time * i;
+      frame.bones = frame_mats;
 
       animation->keyframes.push_back(frame);
     }
@@ -411,28 +439,28 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
       float value = motion_data.data[channel_start_index + j];
 
       // X position
-//      if (channel & 0x01) {
-//        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(value, 0, 0));
-//      }
-//      // Y position
-//      if (channel & 0x02) {
-//        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, value, 0));
-//      }
-//      // Z position
-//      if (channel & 0x04) {
-//        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, 0, value));
-//      }
+      if (channel & 0x01) {
+        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(value, 0, 0));
+      }
+      // Y position
+      if (channel & 0x02) {
+        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, value, 0));
+      }
+      // Z position
+      if (channel & 0x04) {
+        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, 0, value));
+      }
       // X rotation
       if (channel & 0x20) {
-        transformedMatrix = glm::rotate(transformedMatrix, glm::radians(value), glm::vec3(1, 0, 0));
+        transformedMatrix = glm::rotate(transformedMatrix, -glm::radians(value), glm::vec3(1, 0, 0));
       }
       // Y rotation
       if (channel & 0x40) {
-        transformedMatrix = glm::rotate(transformedMatrix, glm::radians(value), glm::vec3(0, 1, 0));
+        transformedMatrix = glm::rotate(transformedMatrix, -glm::radians(value), glm::vec3(0, 1, 0));
       }
       // Z rotation
       if (channel & 0x10) {
-        transformedMatrix = glm::rotate(transformedMatrix, glm::radians(value), glm::vec3(0, 0, 1));
+        transformedMatrix = glm::rotate(transformedMatrix, -glm::radians(value), glm::vec3(0, 0, 1));
       }
     }
 
