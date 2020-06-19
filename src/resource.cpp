@@ -368,8 +368,8 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
 
     animation->name = name;
     animation->frame_count = bvh.getNumFrames();
-    animation->animation_duration = motion_data.frame_time * motion_data.num_frames * 1000;
-    animation->frame_time = motion_data.frame_time;
+    animation->frame_time = motion_data.frame_time / 1000;
+    animation->animation_duration = animation->frame_time * motion_data.num_frames;
     animation->is_relative = true;
 
     animation->keyframes.reserve(animation->frame_count);
@@ -411,17 +411,17 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
       float value = motion_data.data[channel_start_index + j];
 
       // X position
-      if (channel & 0x01) {
-        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(value, 0, 0));
-      }
-      // Y position
-      if (channel & 0x02) {
-        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, value, 0));
-      }
-      // Z position
-      if (channel & 0x04) {
-        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, 0, value));
-      }
+//      if (channel & 0x01) {
+//        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(value, 0, 0));
+//      }
+//      // Y position
+//      if (channel & 0x02) {
+//        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, value, 0));
+//      }
+//      // Z position
+//      if (channel & 0x04) {
+//        transformedMatrix = glm::translate(transformedMatrix, glm::vec3(0, 0, value));
+//      }
       // X rotation
       if (channel & 0x20) {
         transformedMatrix = glm::rotate(transformedMatrix, glm::radians(value), glm::vec3(1, 0, 0));
