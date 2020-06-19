@@ -450,7 +450,7 @@ Ui::run(const Window& window,
                 for (auto& joint : animation.transformed_matrices[animation.current_frame]) {
                   if (registry.has<Components::Mesh>(*selected_entity)) {
                     auto& mesh = registry.get<Components::Mesh>(*selected_entity);
-                    auto& armature_resource = resource_manager.mesh_cache().handle(mesh.id);
+                    const auto& armature_resource = resource_manager.mesh_cache().handle(mesh.id);
                     if (armature_resource->bones[i].name.empty()) {
                       ImGui::Text("Joint %d", i);
                     }
@@ -550,7 +550,7 @@ Ui::run(const Window& window,
               for (auto& joint : animation.transformed_matrices[animation.current_frame]) {
                   if (registry.has<Components::Mesh>(*selected_entity)) {
                       auto& mesh = registry.get<Components::Mesh>(*selected_entity);
-                      auto& armature_resource = resource_manager.mesh_cache().handle(mesh.id);
+                      const auto& armature_resource = resource_manager.mesh_cache().handle(mesh.id);
                       if (armature_resource->bones[i].name.empty()) {
                           ImGui::Text("Joint %d", i);
                       }
@@ -682,7 +682,7 @@ Ui::entity_accept_animation(Scene& scene,
 
         auto current_joint_index = k;
         mat4 transformed_mat = glm::identity<glm::mat4>();
-        while (current_joint_index != -1) {
+        while (current_joint_index < std::numeric_limits<uint32_t>::max()) {
           glm::mat4 trans = glm::translate(mesh_resource->bones[current_joint_index].position);
           glm::mat4 rot = glm::mat4(mesh_resource->bones[current_joint_index].orientation);
           glm::mat4 trans_rot = trans * rot;
