@@ -652,9 +652,6 @@ Ui::entity_accept_animation(Scene& scene,
         const bone_t& parent_bone = mesh_resource->bones[parent_id];
 
         if (!mesh_resource->bones[parent_id].name.empty() && !animation_resource->joint_names.empty()) {
-          const mat4 parent_joint = animation_resource->keyframes[i].bones[animation_resource->joint_names.at(parent_bone.name)];
-          transformed_mat = parent_joint * transformed_mat;
-
           parent_id = parent_bone.parent;
         }
         else {
@@ -689,9 +686,7 @@ Ui::entity_accept_animation(Scene& scene,
 
           std::string temp_bone_name = mesh_resource->bones[current_joint_index].name;
           auto temp_anim_joint_index = animation_resource->joint_names.at(temp_bone_name);
-          if (current_joint_index == k) {
-            trans_rot = trans_rot * animation.transformed_matrices[i][temp_anim_joint_index];
-          }
+          trans_rot = trans_rot * animation.transformed_matrices[i][temp_anim_joint_index];
 
           transformed_mat = trans_rot * transformed_mat;
 
