@@ -129,12 +129,37 @@ void moveJoint(JOINT* joint, MOTION* motionData, int frame_starts_index) {
   }
 }
 
+void moveJointTest(JOINT* joint, MOTION* motionData, int frame_starts_index) {
+  int start_index = frame_starts_index + joint->channel_start;
+
+  glm::vec3 translation = glm::vec3((joint->offset.x + motionData->data[start_index]) / 30.0f, 
+                                    (joint->offset.y + motionData->data[start_index+1]) / 30.0f,
+                                    (joint->offset.z + motionData->data[start_index+2]) / 30.0f);
+  glm::mat4 rotation = glm::identity<glm::mat4>();
+  rotation = glm::rotate(rotation, glm::radians(motionData->data[start_index + 3]), glm::vec3(0, 0, 1));
+  rotation = glm::rotate(rotation, glm::radians(motionData->data[start_index + 4]), glm::vec3(1, 0, 0));
+  rotation = glm::rotate(rotation, glm::radians(motionData->data[start_index + 5]), glm::vec3(0, 1, 0));
+
+  auto transformation_mat = glm::translate(rotation, translation);
+
+  if (joint->parent != NULL) {
+    joint->matrix = joint->parent->matrix * transformation_mat * joint->matrix;
+  }
+  else {
+    joint->matrix = transformation_mat * joint->matrix;
+  }
+
+  for (auto& child : joint->children) {
+    moveJointTest(child, motionData, frame_starts_index);
+  }
+}
+
 void Bvh::moveTo(unsigned frame) {
   // calculate start index for specific frame for motion data
   unsigned start_index = frame * motionData.num_motion_channels;
 
   // skeleton transformation
-  moveJoint(rootJoint, &motionData, start_index);
+  moveJointTest(rootJoint, &motionData, start_index);
 }
 
 }

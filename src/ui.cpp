@@ -637,21 +637,35 @@ Ui::entity_accept_animation(Scene& scene,
     animation.transformed_matrices.push_back(std::vector<glm::mat4>());
     animation.transformed_matrices[i].reserve(animation_resource->keyframes[i].bones.size());
     for (uint32_t j = 0; j < animation_resource->keyframes[i].bones.size(); j++) {
-      int parent_id = mesh_resource->bones[j].parent;
-
       glm::mat4 transformed_mat;
+
       if (!mesh_resource->bones[j].name.empty() && !animation_resource->joint_names.empty()) {
         auto bone = mesh_resource->bones[j];
         transformed_mat = animation_resource->keyframes[i].bones[animation_resource->joint_names.at(bone.name)];
+
+        auto joint_global_orientation = glm::mat3(armature.joints[j]);
+        transformed_mat = transformed_mat * glm::mat4(joint_global_orientation);
       }
       else {
         transformed_mat = animation_resource->keyframes[i].bones[j];
+
+        int parent_id = mesh_resource->bones[j].parent;
+
+        while (parent_id != -1) {
+          const bone_t& parent_bone = mesh_resource->bones[parent_id];
+
+          const mat4 parent_joint = animation_resource->keyframes[i].bones[parent_id];
+          transformed_mat = parent_joint * transformed_mat;
+
+          parent_id = parent_bone.parent;
+        }
       }
 
-      while (parent_id != -1) {
+      /*while (parent_id != -1) {
         const bone_t& parent_bone = mesh_resource->bones[parent_id];
 
         if (!mesh_resource->bones[parent_id].name.empty() && !animation_resource->joint_names.empty()) {
+
           parent_id = parent_bone.parent;
         }
         else {
@@ -660,7 +674,7 @@ Ui::entity_accept_animation(Scene& scene,
 
           parent_id = parent_bone.parent;
         }
-      }
+      }*/
 
       animation.transformed_matrices[i].push_back(transformed_mat);
     }
