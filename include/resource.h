@@ -23,7 +23,7 @@ struct vertex_t
 {
   glm::vec3 position;
   glm::vec3 normal;
-  float bone_id;
+  glm::vec3 bone_id; // Blend x and y by z
 };
 
 struct bone_t

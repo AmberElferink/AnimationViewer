@@ -3,6 +3,8 @@ project(AnimationViewer)
 
 find_program(GLSLVALIDATOR glslangValidator)
 
+option(ANIMATIONVIEWER_ENABLE_BLENDING "Enable experimental joint blending" OFF)
+
 file(GLOB sources CONFIGURE_DEPENDS src/*.cpp src/materials/*.cpp src/hittable/*.cpp)
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS include/*.h)
 file(GLOB_RECURSE private_impl_sources CONFIGURE_DEPENDS src/private_impl/*)
@@ -113,6 +115,8 @@ if(SPNAV_LIBRARY)
   target_compile_definitions(AnimationViewerLib PRIVATE USE_SPNAV=1)
   target_link_libraries(AnimationViewerLib PRIVATE ${SPNAV_LIBRARY})
 endif()
+
+target_compile_definitions(AnimationViewerLib PRIVATE ANIMATIONVIEWER_ENABLE_BLENDING=$<BOOL:${ANIMATIONVIEWER_ENABLE_BLENDING}>)
 
 add_subdirectory(3rd_party/anm)
 add_subdirectory(3rd_party/glad)

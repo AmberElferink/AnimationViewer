@@ -1,5 +1,6 @@
 #include "resource.h"
 
+#include <array>
 #include <queue>
 #include <stack>
 #include <unordered_map>
@@ -15,6 +16,7 @@
 #include <bvh.h>
 #include <bvhloader.h>
 #include <ezc3d.h>
+#include <glm/ext/matrix_common.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -141,7 +143,7 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
       mesh->vertices.push_back({
         { vertex.position.x, vertex.position.y, vertex.position.z },
         { vertex.normal.x, vertex.normal.y, vertex.normal.z },
-        static_cast<float>(bone_index),
+        glm::vec3(static_cast<float>(bone_index), 0, 0),
       });
 
       vertex_index++;
@@ -306,17 +308,17 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
 
         for (int j = 0; j < cluster->getIndicesCount(); ++j) {
           assert(cluster->getIndices()[j] < geometry->getVertexCount());
-          // TODO: We don't support blending yet
+          // TODO: We don't support blending yet but this is done in the assimp impl
           assert(cluster->getWeights()[i] <= 1);
 
           auto& vertex = mesh_resource->vertices[cluster->getIndices()[j]];
-          vertex.bone_id = seen_links[cluster->getLink()->id];
+          vertex.bone_id = glm::vec3(seen_links[cluster->getLink()->id], 0, 0);
         }
       }
       // Convert from absolute to relative to joint
       for (auto& vertex : mesh_resource->vertices) {
         glm::mat4 matrix(1.0f);
-        for (uint32_t bone_id = vertex.bone_id; bone_id < std::numeric_limits<uint32_t>::max();
+        for (uint32_t bone_id = vertex.bone_id.x; bone_id < std::numeric_limits<uint32_t>::max();
              bone_id = mesh_resource->bones[bone_id].parent) {
           auto& bone = mesh_resource->bones[bone_id];
           glm::mat4 rot = glm::mat4(bone.orientation);
@@ -387,13 +389,23 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
       }
     }
 
-    std::vector<std::pair<const aiBone*, float>> vertex_bone_map(mesh->mNumVertices);
+    std::vector<std::array<std::pair<const aiBone*, float>, 2>> vertex_bone_map(mesh->mNumVertices);
     for (uint32_t i = 0; i < mesh->mNumBones; ++i) {
       for (uint32_t j = 0; j < mesh->mBones[i]->mNumWeights; ++j) {
-        if (vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId].second <
+        if (vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][0].first == mesh->mBones[i] ||
+            vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][1].first == mesh->mBones[i]) {
+          continue;
+        }
+        // Keep the two highest weights
+        if (vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][0].second <
             mesh->mBones[i]->mWeights[j].mWeight) {
-          vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId].first = mesh->mBones[i];
-          vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId].second =
+          vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][0].first = mesh->mBones[i];
+          vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][0].second =
+            mesh->mBones[i]->mWeights[j].mWeight;
+        } else if (vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][1].second <
+                   mesh->mBones[i]->mWeights[j].mWeight) {
+          vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][1].first = mesh->mBones[i];
+          vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][1].second =
             mesh->mBones[i]->mWeights[j].mWeight;
         }
       }
@@ -401,17 +413,34 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
 
     mesh_resource->vertices.resize(mesh->mNumVertices);
     for (uint32_t i = 0; i < mesh->mNumVertices; ++i) {
-      vertex_bone_map[i].first;
       mesh_resource->vertices[i].position = glm::make_vec3(&mesh->mVertices[i].x);
       mesh_resource->vertices[i].normal = glm::make_vec3(&mesh->mNormals[i].x);
-      if (vertex_bone_map[i].first) {
-        auto v = vertex_bone_map[i].first->mOffsetMatrix * mesh->mVertices[i];
-        mesh_resource->vertices[i].position = glm::make_vec3(&v.x);
-        mesh_resource->vertices[i].bone_id =
-          name_joint_map[vertex_bone_map[i].first->mName.C_Str()];
+      if (vertex_bone_map[i][0].first) {
+        float a = vertex_bone_map[i][0].second;
+        uint32_t a_id = name_joint_map[vertex_bone_map[i][0].first->mName.C_Str()];
+        glm::mat4 mat_a = glm::make_mat4(vertex_bone_map[i][0].first->mOffsetMatrix[0]);
+        float b = 0.0f;
+        uint32_t b_id = 0;
+        glm::mat4 mat_b(1.0f);
+        // If there's a second joint to blend
+#if ANIMATIONVIEWER_ENABLE_BLENDING
+        if (vertex_bone_map[i][1].first) {
+          b = vertex_bone_map[i][1].second;
+          b_id = name_joint_map[vertex_bone_map[i][1].first->mName.C_Str()];
+          mat_b = glm::make_mat4(vertex_bone_map[i][1].first->mOffsetMatrix[0]);
+        }
+#endif
+        // normalize the weights, only need b for the case of 2
+        b /= a + b;
+        // lerp the two matrices
+        auto mat = glm::mix(glm::transpose(mat_a), glm::transpose(mat_b), b);
+        mesh_resource->vertices[i].position =
+          mat * glm::vec4(glm::make_vec3(&mesh->mVertices[i].x), 1.0f);
+        // Add both bone_ids and blending value
+        mesh_resource->vertices[i].bone_id = glm::vec3(a_id, b_id, b);
       } else {
         mesh_resource->vertices[i].position = glm::make_vec3(&mesh->mVertices[i].x);
-        mesh_resource->vertices[i].bone_id = 0;
+        mesh_resource->vertices[i].bone_id = glm::vec3(0, 0, 0);
       }
     }
 
@@ -496,7 +525,7 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
         std::max(anim->mChannels[j]->mNumRotationKeys, anim->mChannels[j]->mNumScalingKeys));
       if (frame_count > 1) {
         if (animation->frame_count > 1) {
-          assert(frame_count == animation->frame_count);
+          // assert(frame_count == animation->frame_count);
         } else {
           animation->frame_count = anim->mChannels[j]->mNumPositionKeys;
         }
