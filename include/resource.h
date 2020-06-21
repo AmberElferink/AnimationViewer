@@ -28,6 +28,7 @@ struct vertex_t
 
 struct bone_t
 {
+  std::string name;
   uint32_t parent;
   uint32_t firstChild;
   uint32_t rightSibling;
@@ -60,6 +61,7 @@ struct Animation
   float frame_rate;
   uint32_t frame_count;
   uint32_t animation_duration;
+  std::vector<std::string> joint_names;
   std::vector<AnimationFrame> keyframes;
 };
 
@@ -108,6 +110,7 @@ protected:
   std::optional<entt::hashed_string> load_anm_file(const std::filesystem::path& path);
   std::optional<entt::hashed_string> load_bvh_file(const std::filesystem::path& path);
   std::optional<entt::hashed_string> load_c3d_file(const std::filesystem::path& path);
+  std::vector<std::pair<entt::hashed_string, Type>> load_assimp_file(const std::filesystem::path& path, bool skip_meshes);
 
 private:
   entt::cache<Resource::Mesh> mesh_cache_;

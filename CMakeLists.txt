@@ -103,7 +103,8 @@ else()
   find_package(SDL2 REQUIRED)
   find_package(spirv_cross_core REQUIRED)
   find_package(spirv_cross_glsl REQUIRED)
-  set(LIBRARIES SDL2::SDL2 glad imgui spirv-cross-core spirv-cross-glsl glm EnTT::EnTT)
+  find_package(assimp CONFIG REQUIRED)
+  set(LIBRARIES SDL2::SDL2 glad imgui spirv-cross-core spirv-cross-glsl glm EnTT::EnTT assimp)
 endif()
 
 # 3d connexion 3d mouse

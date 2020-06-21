@@ -340,13 +340,19 @@ Ui::run(const Window& window,
           if (registry.has<Components::Armature>(*selected_entity)) {
             if (ImGui::TreeNode("Armature Component")) {
               auto& armature = registry.get<Components::Armature>(*selected_entity);
+              auto& mesh = registry.get<Components::Mesh>(*selected_entity);
+              auto mesh_resource = resource_manager.mesh_cache().handle(mesh.id);
               if (ImGui::Button("Remove")) {
                 registry.remove<Components::Armature>(*selected_entity);
               } else {
                 char matrix_name[256];
                 uint32_t i = 0;
                 for (auto& joint : armature.joints) {
-                  ImGui::Text("Joint %d", i);
+                  if (!mesh_resource->bones[i].name.empty()) {
+                    ImGui::Text("%s", mesh_resource->bones[i].name.c_str());
+                  } else {
+                    ImGui::Text("Joint %d", i);
+                  }
                   snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 0", i);
                   ImGui::InputFloat4(matrix_name,
                                      glm::value_ptr(joint[0]),
@@ -444,7 +450,11 @@ Ui::run(const Window& window,
                 char matrix_name[256];
                 uint32_t i = 0;
                 for (const auto& joint : resource->keyframes[animation.current_frame].bones) {
-                  ImGui::Text("Joint %d", i);
+                  if (!resource->joint_names[i].empty()) {
+                    ImGui::Text("%s", resource->joint_names[i].c_str());
+                  } else {
+                    ImGui::Text("Joint %d", i);
+                  }
                   snprintf(matrix_name, sizeof(matrix_name), "##joint anim%d - 0", i);
                   ImGui::InputFloat4(matrix_name,
                                      const_cast<float*>(glm::value_ptr(joint[0])),
@@ -576,47 +586,7 @@ Ui::entity_accept_animation(Scene& scene,
   assert(payload->DataSize == sizeof(id));
   memcpy(&id, payload->Data, sizeof(id));
 
-  const auto& animation_resource = resource_manager.animation_cache().handle(id);
-
-  auto& armature = scene.registry().get<Components::Armature>(entity);
-  if (armature.joints.size() != animation_resource->keyframes[0].bones.size()) {
-    return false;
-  };
-
-  auto& animation = scene.registry().emplace<Components::Animation>(entity, id);
-  animation.loop = true;
-  animation.animating = true;
-  auto& mesh = scene.registry().get<Components::Mesh>(entity);
-  const auto& mesh_resource = resource_manager.mesh_cache().handle(mesh.id);
-
-  animation.transformed_matrices.reserve(animation_resource->keyframes.size());
-  for (uint32_t i = 0; i < animation_resource->keyframes.size(); i++) {
-    animation.transformed_matrices.push_back(std::vector<glm::mat4>());
-    animation.transformed_matrices[i].reserve(animation_resource->keyframes[i].bones.size());
-    for (uint32_t j = 0; j < animation_resource->keyframes[i].bones.size(); j++) {
-      int parent_id = mesh_resource->bones[j].parent;
-
-      auto transformed_mat = animation_resource->keyframes[i].bones[j];
-
-      while (parent_id != -1) {
-        const bone_t& parent_bone = mesh_resource->bones[parent_id];
-        const mat4 parent_joint = animation_resource->keyframes[i].bones[parent_id];
-
-        transformed_mat = parent_joint * transformed_mat;
-
-        parent_id = parent_bone.parent;
-      }
-
-      animation.transformed_matrices[i].push_back(transformed_mat);
-    }
-  }
-
-  // Can't have both animation and mocap animation
-  if (scene.registry().has<Components::MotionCaptureAnimation>(entity)) {
-    scene.registry().remove<Components::MotionCaptureAnimation>(entity);
-  }
-
-  return true;
+  return scene.attach_animation(entity, id, resource_manager);
 }
 
 bool
