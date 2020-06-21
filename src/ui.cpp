@@ -7,6 +7,7 @@
 #include <imGuIZMOquat.h>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <glm/gtx/matrix_decompose.hpp>
 
 #include <examples/imgui_impl_opengl3.h>
 #include <examples/imgui_impl_sdl.h>
@@ -348,24 +349,35 @@ Ui::run(const Window& window,
                   ImGui::Text("Joint %d", i);
                   snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 0", i);
                   ImGui::InputFloat4(matrix_name,
-                                     glm::value_ptr(glm::transpose(joint)[0]),
-                                     "%.3f",
-                                     ImGuiInputTextFlags_ReadOnly);
+                                     glm::value_ptr(joint[0]),
+                                     "%.3f");
                   snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 1", i);
                   ImGui::InputFloat4(matrix_name,
-                                     glm::value_ptr(glm::transpose(joint)[1]),
-                                     "%.3f",
-                                     ImGuiInputTextFlags_ReadOnly);
+                                     glm::value_ptr(joint[1]),
+                                     "%.3f");
                   snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 2", i);
                   ImGui::InputFloat4(matrix_name,
-                                     glm::value_ptr(glm::transpose(joint)[2]),
-                                     "%.3f",
-                                     ImGuiInputTextFlags_ReadOnly);
+                                     glm::value_ptr(joint[2]),
+                                     "%.3f");
                   snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 3", i);
                   ImGui::InputFloat4(matrix_name,
-                                     glm::value_ptr(glm::transpose(joint)[3]),
-                                     "%.3f",
-                                     ImGuiInputTextFlags_ReadOnly);
+                                     glm::value_ptr(joint[3]),
+                                     "%.3f");
+
+                  {
+                    glm::vec3 scale;
+                    glm::quat orientation;
+                    glm::vec3 position;
+                    glm::vec3 skew;
+                    glm::vec4 perspective;
+                    glm::decompose(joint, scale, orientation, position, skew, perspective);
+
+                    snprintf(matrix_name, sizeof(matrix_name), "##joint guizmo%d", i);
+                    if (ImGui::gizmo3D(matrix_name, position, orientation)) {
+                      joint = glm::translate(glm::mat4(orientation), position);
+                    }
+                  }
+
                   i++;
                 }
               }
@@ -375,55 +387,100 @@ Ui::run(const Window& window,
           if (registry.has<Components::Animation>(*selected_entity)) {
             if (ImGui::TreeNode("Animation Component")) {
               auto& animation = registry.get<Components::Animation>(*selected_entity);
-              const auto& current_animation =
-                resource_manager.animation_cache().handle(animation.id);
-              ImGui::Text("Name: %s", current_animation->name.c_str());
-              ImGui::InputFloat("Frame Rate",
-                                const_cast<float*>(&current_animation->frame_rate),
-                                0.0f,
-                                0.0f,
-                                "%.8f",
-                                ImGuiInputTextFlags_ReadOnly);
-              uint32_t slider_min = 0;
-              uint32_t frame_count = current_animation->frame_count - 1;
-              if (ImGui::SliderScalar("Frame",
-                                      ImGuiDataType_U32,
-                                      &animation.current_frame,
-                                      &slider_min,
-                                      &frame_count)) {
-                auto time_per_frame = static_cast<float>(current_animation->animation_duration) /
-                                      static_cast<float>(current_animation->frame_count);
-                animation.current_time = time_per_frame * animation.current_frame;
-              }
-              if (!animation.animating) {
-                bool reset = false;
-                if (animation.current_frame == 0) {
-                  if (ImGui::Button("Start")) {
-                    reset = true;
-                  }
-                } else {
-                  if (ImGui::Button("Reset")) {
-                    reset = true;
-                  }
+              auto resource = resource_manager.animation_cache().handle(animation.id);
+
+              if (ImGui::Button("Remove")) {
+                registry.remove<Components::Animation>(*selected_entity);
+              } else {
+                const auto& current_animation =
+                  resource_manager.animation_cache().handle(animation.id);
+                ImGui::Text("Name: %s", current_animation->name.c_str());
+                ImGui::InputFloat("Frame Rate",
+                                  const_cast<float*>(&current_animation->frame_rate),
+                                  0.0f,
+                                  0.0f,
+                                  "%.8f",
+                                  ImGuiInputTextFlags_ReadOnly);
+                uint32_t slider_min = 0;
+                uint32_t frame_count = current_animation->frame_count - 1;
+                if (ImGui::SliderScalar("Frame",
+                                        ImGuiDataType_U32,
+                                        &animation.current_frame,
+                                        &slider_min,
+                                        &frame_count)) {
+                  auto time_per_frame = static_cast<float>(current_animation->animation_duration) /
+                                        static_cast<float>(current_animation->frame_count);
+                  animation.current_time = time_per_frame * animation.current_frame;
                 }
-                if (animation.current_frame < current_animation->frame_count - 1) {
-                  if (ImGui::Button("Resume")) {
+                if (!animation.animating) {
+                  bool reset = false;
+                  if (animation.current_frame == 0) {
+                    if (ImGui::Button("Start")) {
+                      reset = true;
+                    }
+                  } else {
+                    if (ImGui::Button("Reset")) {
+                      reset = true;
+                    }
+                  }
+                  if (animation.current_frame < current_animation->frame_count - 1) {
+                    if (ImGui::Button("Resume")) {
+                      animation.animating = true;
+                    }
+                  }
+                  if (reset) {
+                    animation.current_frame = 0;
+                    animation.current_time = 0;
                     animation.animating = true;
                   }
                 }
-                if (reset) {
-                  animation.current_frame = 0;
-                  animation.current_time = 0;
-                  animation.animating = true;
+                if (animation.animating) {
+                  if (ImGui::Button("Pause")) {
+                    animation.animating = false;
+                  }
+                }
+                ImGui::Checkbox("Animating", &animation.animating);
+                ImGui::Checkbox("Loop", &animation.loop);
+                char matrix_name[256];
+                uint32_t i = 0;
+                for (const auto& joint : resource->keyframes[animation.current_frame].bones) {
+                  ImGui::Text("Joint %d", i);
+                  snprintf(matrix_name, sizeof(matrix_name), "##joint anim%d - 0", i);
+                  ImGui::InputFloat4(matrix_name,
+                                     const_cast<float*>(glm::value_ptr(joint[0])),
+                                     "%.3f",
+                                     ImGuiInputTextFlags_ReadOnly);
+                  snprintf(matrix_name, sizeof(matrix_name), "##joint anim%d - 1", i);
+                  ImGui::InputFloat4(matrix_name,
+                                     const_cast<float*>(glm::value_ptr(joint[1])),
+                                     "%.3f",
+                                     ImGuiInputTextFlags_ReadOnly);
+                  snprintf(matrix_name, sizeof(matrix_name), "##joint anim%d - 2", i);
+                  ImGui::InputFloat4(matrix_name,
+                                     const_cast<float*>(glm::value_ptr(joint[2])),
+                                     "%.3f",
+                                     ImGuiInputTextFlags_ReadOnly);
+                  snprintf(matrix_name, sizeof(matrix_name), "##joint anim%d - 3", i);
+                  ImGui::InputFloat4(matrix_name,
+                                     const_cast<float*>(glm::value_ptr(joint[3])),
+                                     "%.3f",
+                                     ImGuiInputTextFlags_ReadOnly);
+
+                  {
+                    glm::vec3 scale;
+                    glm::quat orientation;
+                    glm::vec3 position;
+                    glm::vec3 skew;
+                    glm::vec4 perspective;
+                    glm::decompose(joint, scale, orientation, position, skew, perspective);
+
+                    snprintf(matrix_name, sizeof(matrix_name), "##joint anim guizmo%d", i);
+                    ImGui::gizmo3D(matrix_name, position, orientation);
+                  }
+
+                  ++i;
                 }
               }
-              if (animation.animating) {
-                if (ImGui::Button("Pause")) {
-                  animation.animating = false;
-                }
-              }
-              ImGui::Checkbox("Animating", &animation.animating);
-              ImGui::Checkbox("Loop", &animation.loop);
               ImGui::TreePop();
             }
           }
