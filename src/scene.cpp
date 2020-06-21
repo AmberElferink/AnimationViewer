@@ -277,6 +277,7 @@ Scene::default_camera()
 {
   return Components::Camera{
     .fov_y = glm::radians(80.0f),
+    .aspect = 1.0f,
     .near = 1.0f,
     .far = 1000.0f,
   };
