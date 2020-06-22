@@ -35,7 +35,7 @@ Because this project is meant to give us an insight in using animation and MoCap
 
 We support L3D, ANM, C3D, FBX, GLTF files. BVH is also partially supported, however for this the animations do not show perfectly. We implemented a skeleton structure and keyframe blending for smooth animations. We implemented skinning and a easy to use interface that allows for maximum flexibility and easy use for an animator.
 
-[![Interface labeled with numbers](footage/Interface Explanation.png "Figure 1, showing the different sections of the interface")
+![Interface labeled with numbers](footage/Interface Explanation.png "Figure 1, showing the different sections of the interface")
 
 All libraries that have been used can be found in the references.  The interface can be seen in Figure 1.
 
