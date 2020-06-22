@@ -10,7 +10,7 @@ layout(binding = 0, std140) uniform uniform_vertex_block_t {
 
 layout(location = 0) in vec3 vertex_position;
 layout(location = 1) in vec3 vertex_normal;
-layout(location = 2) in float vertex_bone_id; //uint won't upload correctly
+layout(location = 2) in vec3 vertex_bone_ids; // Blend x and y by z value
 
 layout(location = 0) out vec3 fragment_position;
 layout(location = 1) out vec3 fragment_normal;
@@ -26,10 +26,12 @@ void main() {
   // infinite R3 to Normalized Device coordinates. A box from -1 to 1 in three
   // axis where the xy coordinates are perpective projected (parallel lines
   // converge at a point) and the z gets fed into the depth-buffer.
-  vec4 trans_rot_vertex_pos = uniform_block.data.bone_trans_rots[uint(vertex_bone_id)] * vec4(vertex_position, 1);
-  gl_Position = mvp * trans_rot_vertex_pos;
+  vec4 trans_rot_vertex_pos_0 = uniform_block.data.bone_trans_rots[uint(vertex_bone_ids.x)] * vec4(vertex_position, 1);
+  vec4 trans_rot_vertex_pos_1 = uniform_block.data.bone_trans_rots[uint(vertex_bone_ids.y)] * vec4(vertex_position, 1);
+  vec4 blended_trans_rot_vertex_pos = mix(trans_rot_vertex_pos_0, trans_rot_vertex_pos_1, vertex_bone_ids.z);
+  gl_Position = mvp * blended_trans_rot_vertex_pos;
   // We also store the position unaffected by perpective to do lighting calculations
-  fragment_position = (mv * trans_rot_vertex_pos).xyz;
+  fragment_position = (mv * blended_trans_rot_vertex_pos).xyz;
   // Simularly, the normal which is a point, gets augmented with 0 in the w
   // parameter indicating that it cannot be translated.
   // Normals aren't perspective transformed which is why only the inverse

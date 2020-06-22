@@ -75,7 +75,10 @@ public:
   void process_event(const SDL_Event& event, std::chrono::microseconds& dt);
   void add_mesh(ENTT_ID_TYPE id,
                 const std::optional<glm::vec2>& screen_space_position,
-                AnimationViewer::ResourceManager& resource_manager);
+                const ResourceManager& resource_manager);
+  bool attach_animation(const entt::entity& entity,
+                        ENTT_ID_TYPE animation_id,
+                        const ResourceManager& resource_manager);
 
   /// A scene can have any number of cameras including zero
   /// This returns the camera selected for rendering or a default camera

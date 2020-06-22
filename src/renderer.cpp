@@ -357,7 +357,7 @@ Renderer::upload_mesh(const std::vector<vertex_t>& vertices, const std::vector<u
   const std::vector<IndexedMesh::MeshAttributes> attributes = {
     IndexedMesh::MeshAttributes{ GL_FLOAT, 3 }, // Position
     IndexedMesh::MeshAttributes{ GL_FLOAT, 3 }, // Normal
-    IndexedMesh::MeshAttributes{ GL_FLOAT, 1 }, // Bone Id
+    IndexedMesh::MeshAttributes{ GL_FLOAT, 3 }, // Bone Id1, Bone Id2, blend value
   };
   return IndexedMesh::create(attributes,
                              vertices.data(),
@@ -389,6 +389,7 @@ Renderer::create_pipeline()
       .cull_mode = Pipeline::CullMode::Back,
       .depth_write = false,
       .depth_test = Pipeline::DepthTest::Less,
+      .blend = false,
     };
     rayleigh_sky_pipeline_ = Pipeline::create(Pipeline::Type::RasterOpenGL, info);
     rayleigh_sky_uniform_buffer_ = Buffer::create(sizeof(sky_uniform_t));
@@ -407,6 +408,7 @@ Renderer::create_pipeline()
       .cull_mode = Pipeline::CullMode::Back,
       .depth_write = true,
       .depth_test = Pipeline::DepthTest::Less,
+      .blend = false,
     };
     mesh_pipeline_ = Pipeline::create(Pipeline::Type::RasterOpenGL, info);
     mesh_vertex_uniform_buffer_ = Buffer::create(sizeof(mesh_uniform_t));

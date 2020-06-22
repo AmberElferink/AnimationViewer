@@ -3,6 +3,8 @@ project(AnimationViewer)
 
 find_program(GLSLVALIDATOR glslangValidator)
 
+option(ANIMATIONVIEWER_ENABLE_BLENDING "Enable experimental joint blending" OFF)
+
 file(GLOB sources CONFIGURE_DEPENDS src/*.cpp src/materials/*.cpp src/hittable/*.cpp)
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS include/*.h)
 file(GLOB_RECURSE private_impl_sources CONFIGURE_DEPENDS src/private_impl/*)
@@ -103,7 +105,13 @@ else()
   find_package(SDL2 REQUIRED)
   find_package(spirv_cross_core REQUIRED)
   find_package(spirv_cross_glsl REQUIRED)
-  set(LIBRARIES SDL2::SDL2 glad imgui spirv-cross-core spirv-cross-glsl glm EnTT::EnTT)
+  find_package(assimp CONFIG REQUIRED)
+  if (UNIX)
+    set(ASSIMP_LIB assimp)
+  else()
+    set(ASSIMP_LIB assimp::assimp)
+  endif()
+  set(LIBRARIES SDL2::SDL2 glad imgui spirv-cross-core spirv-cross-glsl glm EnTT::EnTT ${ASSIMP_LIB})
 endif()
 
 # 3d connexion 3d mouse
@@ -112,6 +120,8 @@ if(SPNAV_LIBRARY)
   target_compile_definitions(AnimationViewerLib PRIVATE USE_SPNAV=1)
   target_link_libraries(AnimationViewerLib PRIVATE ${SPNAV_LIBRARY})
 endif()
+
+target_compile_definitions(AnimationViewerLib PRIVATE ANIMATIONVIEWER_ENABLE_BLENDING=$<BOOL:${ANIMATIONVIEWER_ENABLE_BLENDING}>)
 
 add_subdirectory(3rd_party/anm)
 add_subdirectory(3rd_party/glad)

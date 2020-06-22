@@ -1,5 +1,7 @@
 #include "resource.h"
 
+#include <array>
+#include <queue>
 #include <stack>
 #include <unordered_map>
 
@@ -8,9 +10,13 @@
 #include <Frame.h>
 #include <Header.h>
 #include <L3DFile.h>
+#include <assimp/cimport.h>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
 #include <bvh.h>
 #include <bvhloader.h>
 #include <ezc3d.h>
+#include <glm/ext/matrix_common.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -108,6 +114,7 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
       glm::mat3 orient = glm::make_mat3(bone.orientation);
 
       mesh->bones.push_back({
+        "",
         bone.parent,
         bone.firstChild,
         bone.rightSibling,
@@ -136,7 +143,7 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
       mesh->vertices.push_back({
         { vertex.position.x, vertex.position.y, vertex.position.z },
         { vertex.normal.x, vertex.normal.y, vertex.normal.z },
-        static_cast<float>(bone_index),
+        glm::vec3(static_cast<float>(bone_index), 0, 0),
       });
 
       vertex_index++;
@@ -301,17 +308,17 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
 
         for (int j = 0; j < cluster->getIndicesCount(); ++j) {
           assert(cluster->getIndices()[j] < geometry->getVertexCount());
-          // TODO: We don't support blending yet
+          // TODO: We don't support blending yet but this is done in the assimp impl
           assert(cluster->getWeights()[i] <= 1);
 
           auto& vertex = mesh_resource->vertices[cluster->getIndices()[j]];
-          vertex.bone_id = seen_links[cluster->getLink()->id];
+          vertex.bone_id = glm::vec3(seen_links[cluster->getLink()->id], 0, 0);
         }
       }
       // Convert from absolute to relative to joint
       for (auto& vertex : mesh_resource->vertices) {
         glm::mat4 matrix(1.0f);
-        for (uint32_t bone_id = vertex.bone_id; bone_id < std::numeric_limits<uint32_t>::max();
+        for (uint32_t bone_id = vertex.bone_id.x; bone_id < std::numeric_limits<uint32_t>::max();
              bone_id = mesh_resource->bones[bone_id].parent) {
           auto& bone = mesh_resource->bones[bone_id];
           glm::mat4 rot = glm::mat4(bone.orientation);
@@ -323,6 +330,128 @@ struct Mesh final : entt::loader<Mesh, Resource::Mesh>
         vertex.position = rotation * (vertex.position + translation);
       }
     }
+    return mesh_resource;
+  }
+
+  std::shared_ptr<Resource::Mesh> load(const std::string& name,
+                                       const aiMesh* mesh,
+                                       const aiNode* root) const
+  {
+    auto mesh_resource = std::make_shared<Resource::Mesh>();
+    mesh_resource->name = name;
+
+    std::unordered_map<const aiNode*, uint32_t> node_joint_map;
+    node_joint_map[nullptr] = std::numeric_limits<uint32_t>::max();
+    std::queue<const aiNode*> armature;
+    armature.push(root);
+    while (!armature.empty()) {
+      auto node = armature.front();
+      armature.pop();
+      for (uint32_t i = 0; i < node->mNumChildren; ++i) {
+        armature.push(node->mChildren[i]);
+      }
+
+      node_joint_map.emplace(node, mesh_resource->bones.size());
+      auto& res = mesh_resource->bones.emplace_back();
+      res.name = node->mName.C_Str();
+      res.parent = node_joint_map[node->mParent];
+      res.firstChild = std::numeric_limits<uint32_t>::max();
+      res.rightSibling = std::numeric_limits<uint32_t>::max();
+      aiQuaterniont<ai_real> rotation;
+      aiVector3t<ai_real> position;
+      node->mTransformation.DecomposeNoScaling(rotation, position);
+      res.position = glm::make_vec3(&position.x);
+      res.orientation =
+        glm::mat4(glm::normalize(glm::quat(rotation.w, rotation.x, rotation.y, rotation.z)));
+    }
+
+    armature.push(root);
+    while (!armature.empty()) {
+      auto node = armature.front();
+      auto joint_id = node_joint_map[node];
+      armature.pop();
+      for (uint32_t i = 0; i < node->mNumChildren; ++i) {
+        armature.push(node->mChildren[i]);
+      }
+      if (node->mNumChildren) {
+        mesh_resource->bones[joint_id].firstChild = node_joint_map[node->mChildren[0]];
+      }
+      joint_id = mesh_resource->bones[joint_id].firstChild;
+      for (uint32_t i = 1; i < node->mNumChildren; ++i) {
+        mesh_resource->bones[joint_id].rightSibling = node_joint_map[node->mChildren[i]];
+      }
+    }
+
+    std::unordered_map<std::string, uint32_t> name_joint_map;
+    for (auto& [key, value] : node_joint_map) {
+      if (key != NULL) {
+        name_joint_map.emplace(key->mName.C_Str(), value);
+      }
+    }
+
+    std::vector<std::array<std::pair<const aiBone*, float>, 2>> vertex_bone_map(mesh->mNumVertices);
+    for (uint32_t i = 0; i < mesh->mNumBones; ++i) {
+      for (uint32_t j = 0; j < mesh->mBones[i]->mNumWeights; ++j) {
+        if (vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][0].first == mesh->mBones[i] ||
+            vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][1].first == mesh->mBones[i]) {
+          continue;
+        }
+        // Keep the two highest weights
+        if (vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][0].second <
+            mesh->mBones[i]->mWeights[j].mWeight) {
+          vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][0].first = mesh->mBones[i];
+          vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][0].second =
+            mesh->mBones[i]->mWeights[j].mWeight;
+        } else if (vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][1].second <
+                   mesh->mBones[i]->mWeights[j].mWeight) {
+          vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][1].first = mesh->mBones[i];
+          vertex_bone_map[mesh->mBones[i]->mWeights[j].mVertexId][1].second =
+            mesh->mBones[i]->mWeights[j].mWeight;
+        }
+      }
+    }
+
+    mesh_resource->vertices.resize(mesh->mNumVertices);
+    for (uint32_t i = 0; i < mesh->mNumVertices; ++i) {
+      mesh_resource->vertices[i].position = glm::make_vec3(&mesh->mVertices[i].x);
+      mesh_resource->vertices[i].normal = glm::make_vec3(&mesh->mNormals[i].x);
+      if (vertex_bone_map[i][0].first) {
+        float a = vertex_bone_map[i][0].second;
+        uint32_t a_id = name_joint_map[vertex_bone_map[i][0].first->mName.C_Str()];
+        glm::mat4 mat_a = glm::make_mat4(vertex_bone_map[i][0].first->mOffsetMatrix[0]);
+        float b = 0.0f;
+        uint32_t b_id = 0;
+        glm::mat4 mat_b(1.0f);
+        // If there's a second joint to blend
+#if ANIMATIONVIEWER_ENABLE_BLENDING
+        if (vertex_bone_map[i][1].first) {
+          b = vertex_bone_map[i][1].second;
+          b_id = name_joint_map[vertex_bone_map[i][1].first->mName.C_Str()];
+          mat_b = glm::make_mat4(vertex_bone_map[i][1].first->mOffsetMatrix[0]);
+        }
+#endif
+        // normalize the weights, only need b for the case of 2
+        b /= a + b;
+        // lerp the two matrices
+        auto mat = glm::mix(glm::transpose(mat_a), glm::transpose(mat_b), b);
+        mesh_resource->vertices[i].position =
+          mat * glm::vec4(glm::make_vec3(&mesh->mVertices[i].x), 1.0f);
+        // Add both bone_ids and blending value
+        mesh_resource->vertices[i].bone_id = glm::vec3(a_id, b_id, b);
+      } else {
+        mesh_resource->vertices[i].position = glm::make_vec3(&mesh->mVertices[i].x);
+        mesh_resource->vertices[i].bone_id = glm::vec3(0, 0, 0);
+      }
+    }
+
+    mesh_resource->indices.resize(mesh->mNumFaces * 3);
+    for (uint32_t i = 0; i < mesh->mNumFaces; ++i) {
+      assert(mesh->mFaces[i].mNumIndices == 3);
+      mesh_resource->indices[3 * i] = mesh->mFaces[i].mIndices[0];
+      mesh_resource->indices[3 * i + 1] = mesh->mFaces[i].mIndices[1];
+      mesh_resource->indices[3 * i + 2] = mesh->mFaces[i].mIndices[2];
+    }
+
     return mesh_resource;
   }
 };
@@ -367,15 +496,108 @@ struct Animation final : entt::loader<Animation, Resource::Animation>
 
     animation->keyframes.reserve(animation->frame_count);
     for (uint32_t i = 0; i < animation->frame_count; i++) {
-    //  Resource::AnimationFrame frame;
-    //
-    //  for (auto bone : frames[i].bones) {
-    //    glm::mat4x3 bone4x3mat = glm::make_mat4x3(bone.matrix);
-    //    frame.bones.emplace_back(bone4x3mat);
-    //  }
-    //  frame.time = frames[i].time;
-    //  animation->keyframes.push_back(frame);
+      //  Resource::AnimationFrame frame;
+      //
+      //  for (auto bone : frames[i].bones) {
+      //    glm::mat4x3 bone4x3mat = glm::make_mat4x3(bone.matrix);
+      //    frame.bones.emplace_back(bone4x3mat);
+      //  }
+      //  frame.time = frames[i].time;
+      //  animation->keyframes.push_back(frame);
     }
+
+    return animation;
+  }
+
+  std::shared_ptr<Resource::Animation> load(const std::string& name,
+                                            const aiAnimation* anim,
+                                            const aiNode* root) const
+  {
+    auto animation = std::make_shared<Resource::Animation>();
+    animation->name = name;
+    animation->frame_count = 0;
+
+    animation->joint_names.resize(anim->mNumChannels);
+    for (uint32_t j = 0; j < anim->mNumChannels; ++j) {
+      animation->joint_names[j] = anim->mChannels[j]->mNodeName.C_Str();
+      auto frame_count = std::max(
+        anim->mChannels[j]->mNumPositionKeys,
+        std::max(anim->mChannels[j]->mNumRotationKeys, anim->mChannels[j]->mNumScalingKeys));
+      if (frame_count > 1) {
+        if (animation->frame_count > 1) {
+          // assert(frame_count == animation->frame_count);
+        } else {
+          animation->frame_count = anim->mChannels[j]->mNumPositionKeys;
+        }
+      }
+    }
+    animation->animation_duration = anim->mDuration * 1e-6f;
+    animation->frame_rate = anim->mTicksPerSecond * 1e-6f;
+
+    animation->keyframes.resize(animation->frame_count);
+    for (uint32_t i = 0; i < animation->frame_count; ++i) {
+      animation->keyframes[i].time = i * anim->mTicksPerSecond;
+      animation->keyframes[i].bones.resize(anim->mNumChannels);
+    }
+
+    std::unordered_map<std::string, const aiNode*> node_map;
+    std::stack<const aiNode*> nodes;
+    nodes.push(root);
+    while (!nodes.empty()) {
+      auto node = nodes.top();
+      nodes.pop();
+      for (uint32_t i = 0; i < node->mNumChildren; ++i) {
+        nodes.push(node->mChildren[i]);
+      }
+      node_map[node->mName.C_Str()] = node;
+    }
+
+    std::vector<std::string> animation_node_names(anim->mNumChannels);
+    std::unordered_map<std::string, uint32_t> animation_node_map;
+    for (uint32_t j = 0; j < anim->mNumChannels; ++j) {
+      auto channel = anim->mChannels[j];
+      animation_node_names[j] = channel->mNodeName.C_Str();
+      animation_node_map[channel->mNodeName.C_Str()] = j;
+    }
+    for (uint32_t j = 0; j < anim->mNumChannels; ++j) {
+      auto channel = anim->mChannels[j];
+      for (uint32_t i = 0; i < animation->frame_count; i++) {
+        glm::vec3 translation =
+          glm::make_vec3(&channel->mPositionKeys[channel->mNumPositionKeys > 1 ? i : 0].mValue.x);
+        glm::quat rotation =
+          glm::quat(channel->mRotationKeys[channel->mNumRotationKeys > 1 ? i : 0].mValue.w,
+                    channel->mRotationKeys[channel->mNumRotationKeys > 1 ? i : 0].mValue.x,
+                    channel->mRotationKeys[channel->mNumRotationKeys > 1 ? i : 0].mValue.y,
+                    channel->mRotationKeys[channel->mNumRotationKeys > 1 ? i : 0].mValue.z);
+        glm::vec3 scale =
+          glm::make_vec3(&channel->mScalingKeys[channel->mNumScalingKeys > 1 ? i : 0].mValue.x);
+        animation->keyframes[i].bones[j] =
+          glm::scale(scale) * glm::translate(translation) * glm::mat4(rotation);
+      }
+    }
+
+    // Pre-multiply with parents
+    auto keyframes = animation->keyframes;
+    for (uint32_t j = 0; j < anim->mNumChannels; ++j) {
+      auto channel = anim->mChannels[j];
+      for (uint32_t i = 0; i < animation->frame_count; i++) {
+        auto model = keyframes[i].bones[j];
+        for (auto node = node_map[channel->mNodeName.C_Str()]->mParent; node != nullptr;
+             node = node->mParent) {
+          // If the parent is not animated, use the nodes
+          auto found = animation_node_map.find(node->mName.C_Str());
+          if (found == animation_node_map.end()) {
+            glm::mat4 transformation = glm::transpose(glm::make_mat4(node->mTransformation[0]));
+            model = transformation * model;
+          } else {
+            glm::mat4 transformation = animation->keyframes[i].bones[found->second];
+            model = transformation * model;
+          }
+        }
+        keyframes[i].bones[j] = model;
+      }
+    }
+    animation->keyframes = keyframes;
 
     return animation;
   }
@@ -464,17 +686,8 @@ ResourceManager::load_file(const std::filesystem::path& path)
         return { std::make_pair(*mesh, Type::Mesh) };
       }
     } break;
-    case FileType::FBX: {
-      return load_fbx_file(path);
-    } break;
     case FileType::ANM: {
       auto animation = load_anm_file(path);
-      if (animation.has_value()) {
-        return { std::make_pair(*animation, Type::Animation) };
-      }
-    } break;
-    case FileType::BVH: {
-      auto animation = load_bvh_file(path);
       if (animation.has_value()) {
         return { std::make_pair(*animation, Type::Animation) };
       }
@@ -485,8 +698,12 @@ ResourceManager::load_file(const std::filesystem::path& path)
         return { std::make_pair(*mocap, Type::MotionCapture) };
       }
     } break;
+    case FileType::BVH:
+      return load_assimp_file(path, true);
+    case FileType::FBX:
     case FileType::Unknown:
-      fprintf(stderr, "[scene]: Unsupported filetype: %s\n", path.c_str());
+    default:
+      return load_assimp_file(path, false);
   }
   return {};
 }
@@ -563,4 +780,25 @@ ResourceManager::load_c3d_file(const std::filesystem::path& path)
   auto id = entt::hashed_string{ path.string().c_str() };
   motion_capture_cache_.load<Loader::MotionCapture>(id, path.filename().string(), c3d);
   return std::make_optional(id);
+}
+
+std::vector<std::pair<entt::hashed_string, ResourceManager::Type>>
+ResourceManager::load_assimp_file(const std::filesystem::path& path, bool skip_meshes)
+{
+  auto scene = aiImportFile(path.string().c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
+  std::vector<std::pair<entt::hashed_string, ResourceManager::Type>> result;
+  for (uint32_t i = 0; i < scene->mNumAnimations; ++i) {
+    std::string name = path.filename().string() + ":" + scene->mAnimations[i]->mName.C_Str();
+    auto id = entt::hashed_string{ name.c_str() };
+    animation_cache_.load<Loader::Animation>(id, name, scene->mAnimations[i], scene->mRootNode);
+  }
+  if (!skip_meshes) {
+    for (uint32_t i = 0; i < scene->mNumMeshes; ++i) {
+      std::string name = path.filename().string() + ":" + scene->mMeshes[i]->mName.C_Str();
+      auto id = entt::hashed_string{ name.c_str() };
+      mesh_cache_.load<Loader::Mesh>(id, name, scene->mMeshes[i], scene->mRootNode);
+    }
+  }
+  aiReleaseImport(scene);
+  return {};
 }

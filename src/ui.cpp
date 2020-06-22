@@ -4,6 +4,7 @@
 
 #include <SDL_events.h>
 #include <SDL_video.h>
+#include <glm/gtx/matrix_decompose.hpp>
 #include <imGuIZMOquat.h>
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -286,209 +287,274 @@ Ui::run(const Window& window,
                              ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Components", &show_components_)) {
       if (selected_entity.has_value()) {
-        if (ImGui::BeginChild("ComponentsChild")) {
-          auto& registry = scene.registry();
-          if (registry.has<Components::Transform>(*selected_entity)) {
-            if (ImGui::TreeNode("Transform Component")) {
-              auto& transform = registry.get<Components::Transform>(*selected_entity);
-              ImGui::gizmo3D("##Dir1", transform.position, transform.orientation);
+        auto& registry = scene.registry();
+        if (!registry.valid(*selected_entity)) {
+          selected_entity = std::nullopt;
+        } else {
+          if (ImGui::BeginChild("ComponentsChild")) {
+            if (registry.has<Components::Transform>(*selected_entity)) {
+              if (ImGui::TreeNode("Transform Component")) {
+                auto& transform = registry.get<Components::Transform>(*selected_entity);
+                ImGui::gizmo3D("##Dir1", transform.position, transform.orientation);
 
-              ImGui::InputFloat3("Translation", glm::value_ptr(transform.position));
-              auto euler_angles = glm::degrees(glm::eulerAngles(transform.orientation));
-              ImGui::InputScalarN("Rotation",
-                                  ImGuiDataType_Float,
-                                  glm::value_ptr(euler_angles),
-                                  3,
-                                  nullptr,
-                                  nullptr,
-                                  "%.3f°");
-              transform.orientation = glm::radians(euler_angles);
-              ImGui::InputFloat3("Scale", glm::value_ptr(transform.scale));
-              ImGui::TreePop();
-            }
-          }
-
-          if (registry.has<Components::Sky>(*selected_entity)) {
-            if (ImGui::TreeNode("Sky Component")) {
-              auto& sky = registry.get<Components::Sky>(*selected_entity);
-              ImGui::gizmo3D("##direction_to_sun", sky.direction_to_sun);
-
-              ImGui::InputFloat3("Direction To Sun", glm::value_ptr(sky.direction_to_sun));
-              sky.direction_to_sun = glm::normalize(sky.direction_to_sun);
-              ImGui::TreePop();
-            }
-          }
-          if (registry.has<Components::Camera>(*selected_entity)) {
-            if (ImGui::TreeNode("Camera Component")) {
-              auto& camera = registry.get<Components::Camera>(*selected_entity);
-              float fov = glm::degrees(camera.fov_y);
-              ImGui::InputFloat("Vertical of view", &fov, 1.0f, 5.0f, "%.3f°");
-              camera.fov_y = glm::radians(fov);
-              ImGui::InputFloat("Near Plane", &camera.near);
-              ImGui::InputFloat("Far Plane", &camera.far);
-              ImGui::TreePop();
-            }
-          }
-          if (registry.has<Components::Mesh>(*selected_entity)) {
-            if (ImGui::TreeNode("Mesh Component")) {
-              auto& mesh = registry.get<Components::Mesh>(*selected_entity);
-              ImGui::Text("Name: %s", resource_manager.mesh_cache().handle(mesh.id)->name.c_str());
-              ImGui::TreePop();
-            }
-          }
-          if (registry.has<Components::Armature>(*selected_entity)) {
-            if (ImGui::TreeNode("Armature Component")) {
-              auto& armature = registry.get<Components::Armature>(*selected_entity);
-              if (ImGui::Button("Remove")) {
-                registry.remove<Components::Armature>(*selected_entity);
-              } else {
-                char matrix_name[256];
-                uint32_t i = 0;
-                for (auto& joint : armature.joints) {
-                  ImGui::Text("Joint %d", i);
-                  snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 0", i);
-                  ImGui::InputFloat4(matrix_name,
-                                     glm::value_ptr(glm::transpose(joint)[0]),
-                                     "%.3f",
-                                     ImGuiInputTextFlags_ReadOnly);
-                  snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 1", i);
-                  ImGui::InputFloat4(matrix_name,
-                                     glm::value_ptr(glm::transpose(joint)[1]),
-                                     "%.3f",
-                                     ImGuiInputTextFlags_ReadOnly);
-                  snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 2", i);
-                  ImGui::InputFloat4(matrix_name,
-                                     glm::value_ptr(glm::transpose(joint)[2]),
-                                     "%.3f",
-                                     ImGuiInputTextFlags_ReadOnly);
-                  snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 3", i);
-                  ImGui::InputFloat4(matrix_name,
-                                     glm::value_ptr(glm::transpose(joint)[3]),
-                                     "%.3f",
-                                     ImGuiInputTextFlags_ReadOnly);
-                  i++;
-                }
+                ImGui::InputFloat3("Translation", glm::value_ptr(transform.position));
+                auto euler_angles = glm::degrees(glm::eulerAngles(transform.orientation));
+                ImGui::InputScalarN("Rotation",
+                                    ImGuiDataType_Float,
+                                    glm::value_ptr(euler_angles),
+                                    3,
+                                    nullptr,
+                                    nullptr,
+                                    "%.3f°");
+                transform.orientation = glm::radians(euler_angles);
+                ImGui::InputFloat3("Scale", glm::value_ptr(transform.scale));
+                ImGui::TreePop();
               }
-              ImGui::TreePop();
             }
-          }
-          if (registry.has<Components::Animation>(*selected_entity)) {
-            if (ImGui::TreeNode("Animation Component")) {
-              auto& animation = registry.get<Components::Animation>(*selected_entity);
-              const auto& current_animation =
-                resource_manager.animation_cache().handle(animation.id);
-              ImGui::Text("Name: %s", current_animation->name.c_str());
-              ImGui::InputFloat("Frame Rate",
-                                const_cast<float*>(&current_animation->frame_rate),
-                                0.0f,
-                                0.0f,
-                                "%.8f",
-                                ImGuiInputTextFlags_ReadOnly);
-              uint32_t slider_min = 0;
-              uint32_t frame_count = current_animation->frame_count - 1;
-              if (ImGui::SliderScalar("Frame",
-                                      ImGuiDataType_U32,
-                                      &animation.current_frame,
-                                      &slider_min,
-                                      &frame_count)) {
-                auto time_per_frame = static_cast<float>(current_animation->animation_duration) /
-                                      static_cast<float>(current_animation->frame_count);
-                animation.current_time = time_per_frame * animation.current_frame;
+
+            if (registry.has<Components::Sky>(*selected_entity)) {
+              if (ImGui::TreeNode("Sky Component")) {
+                auto& sky = registry.get<Components::Sky>(*selected_entity);
+                ImGui::gizmo3D("##direction_to_sun", sky.direction_to_sun);
+
+                ImGui::InputFloat3("Direction To Sun", glm::value_ptr(sky.direction_to_sun));
+                sky.direction_to_sun = glm::normalize(sky.direction_to_sun);
+                ImGui::TreePop();
               }
-              if (!animation.animating) {
-                bool reset = false;
-                if (animation.current_frame == 0) {
-                  if (ImGui::Button("Start")) {
-                    reset = true;
-                  }
+            }
+            if (registry.has<Components::Camera>(*selected_entity)) {
+              if (ImGui::TreeNode("Camera Component")) {
+                auto& camera = registry.get<Components::Camera>(*selected_entity);
+                float fov = glm::degrees(camera.fov_y);
+                ImGui::InputFloat("Vertical of view", &fov, 1.0f, 5.0f, "%.3f°");
+                camera.fov_y = glm::radians(fov);
+                ImGui::InputFloat("Near Plane", &camera.near);
+                ImGui::InputFloat("Far Plane", &camera.far);
+                ImGui::TreePop();
+              }
+            }
+            if (registry.has<Components::Mesh>(*selected_entity)) {
+              if (ImGui::TreeNode("Mesh Component")) {
+                auto& mesh = registry.get<Components::Mesh>(*selected_entity);
+                ImGui::Text("Name: %s",
+                            resource_manager.mesh_cache().handle(mesh.id)->name.c_str());
+                ImGui::TreePop();
+              }
+            }
+            if (registry.has<Components::Armature>(*selected_entity)) {
+              if (ImGui::TreeNode("Armature Component")) {
+                auto& armature = registry.get<Components::Armature>(*selected_entity);
+                auto& mesh = registry.get<Components::Mesh>(*selected_entity);
+                auto mesh_resource = resource_manager.mesh_cache().handle(mesh.id);
+                if (ImGui::Button("Remove")) {
+                  registry.remove<Components::Armature>(*selected_entity);
                 } else {
-                  if (ImGui::Button("Reset")) {
-                    reset = true;
+                  char matrix_name[256];
+                  uint32_t i = 0;
+                  for (auto& joint : armature.joints) {
+                    if (!mesh_resource->bones[i].name.empty()) {
+                      ImGui::Text("%s", mesh_resource->bones[i].name.c_str());
+                    } else {
+                      ImGui::Text("Joint %d", i);
+                    }
+                    snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 0", i);
+                    ImGui::InputFloat4(matrix_name, glm::value_ptr(joint[0]), "%.3f");
+                    snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 1", i);
+                    ImGui::InputFloat4(matrix_name, glm::value_ptr(joint[1]), "%.3f");
+                    snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 2", i);
+                    ImGui::InputFloat4(matrix_name, glm::value_ptr(joint[2]), "%.3f");
+                    snprintf(matrix_name, sizeof(matrix_name), "##joint%d - 3", i);
+                    ImGui::InputFloat4(matrix_name, glm::value_ptr(joint[3]), "%.3f");
+
+                    {
+                      glm::vec3 scale;
+                      glm::quat orientation;
+                      glm::vec3 position;
+                      glm::vec3 skew;
+                      glm::vec4 perspective;
+                      glm::decompose(joint, scale, orientation, position, skew, perspective);
+
+                      snprintf(matrix_name, sizeof(matrix_name), "##joint guizmo%d", i);
+                      if (ImGui::gizmo3D(matrix_name, position, orientation)) {
+                        joint = glm::translate(glm::mat4(orientation), position);
+                      }
+                    }
+
+                    i++;
                   }
                 }
-                if (animation.current_frame < current_animation->frame_count - 1) {
-                  if (ImGui::Button("Resume")) {
+                ImGui::TreePop();
+              }
+            }
+            if (registry.has<Components::Animation>(*selected_entity)) {
+              if (ImGui::TreeNode("Animation Component")) {
+                auto& animation = registry.get<Components::Animation>(*selected_entity);
+                auto resource = resource_manager.animation_cache().handle(animation.id);
+
+                if (ImGui::Button("Remove")) {
+                  registry.remove<Components::Animation>(*selected_entity);
+                } else {
+                  const auto& current_animation =
+                    resource_manager.animation_cache().handle(animation.id);
+                  ImGui::Text("Name: %s", current_animation->name.c_str());
+                  ImGui::InputFloat("Frame Rate",
+                                    const_cast<float*>(&current_animation->frame_rate),
+                                    0.0f,
+                                    0.0f,
+                                    "%.8f",
+                                    ImGuiInputTextFlags_ReadOnly);
+                  uint32_t slider_min = 0;
+                  uint32_t frame_count = current_animation->frame_count - 1;
+                  if (ImGui::SliderScalar("Frame",
+                                          ImGuiDataType_U32,
+                                          &animation.current_frame,
+                                          &slider_min,
+                                          &frame_count)) {
+                    auto time_per_frame =
+                      static_cast<float>(current_animation->animation_duration) /
+                      static_cast<float>(current_animation->frame_count);
+                    animation.current_time = time_per_frame * animation.current_frame;
+                  }
+                  if (!animation.animating) {
+                    bool reset = false;
+                    if (animation.current_frame == 0) {
+                      if (ImGui::Button("Start")) {
+                        reset = true;
+                      }
+                    } else {
+                      if (ImGui::Button("Reset")) {
+                        reset = true;
+                      }
+                    }
+                    if (animation.current_frame < current_animation->frame_count - 1) {
+                      if (ImGui::Button("Resume")) {
+                        animation.animating = true;
+                      }
+                    }
+                    if (reset) {
+                      animation.current_frame = 0;
+                      animation.current_time = 0;
+                      animation.animating = true;
+                    }
+                  }
+                  if (animation.animating) {
+                    if (ImGui::Button("Pause")) {
+                      animation.animating = false;
+                    }
+                  }
+                  ImGui::Checkbox("Animating", &animation.animating);
+                  ImGui::Checkbox("Loop", &animation.loop);
+                  char matrix_name[256];
+                  uint32_t i = 0;
+                  for (const auto& joint : resource->keyframes[animation.current_frame].bones) {
+                    if (!resource->joint_names[i].empty()) {
+                      ImGui::Text("%s", resource->joint_names[i].c_str());
+                    } else {
+                      ImGui::Text("Joint %d", i);
+                    }
+                    snprintf(matrix_name, sizeof(matrix_name), "##joint anim%d - 0", i);
+                    ImGui::InputFloat4(matrix_name,
+                                       const_cast<float*>(glm::value_ptr(joint[0])),
+                                       "%.3f",
+                                       ImGuiInputTextFlags_ReadOnly);
+                    snprintf(matrix_name, sizeof(matrix_name), "##joint anim%d - 1", i);
+                    ImGui::InputFloat4(matrix_name,
+                                       const_cast<float*>(glm::value_ptr(joint[1])),
+                                       "%.3f",
+                                       ImGuiInputTextFlags_ReadOnly);
+                    snprintf(matrix_name, sizeof(matrix_name), "##joint anim%d - 2", i);
+                    ImGui::InputFloat4(matrix_name,
+                                       const_cast<float*>(glm::value_ptr(joint[2])),
+                                       "%.3f",
+                                       ImGuiInputTextFlags_ReadOnly);
+                    snprintf(matrix_name, sizeof(matrix_name), "##joint anim%d - 3", i);
+                    ImGui::InputFloat4(matrix_name,
+                                       const_cast<float*>(glm::value_ptr(joint[3])),
+                                       "%.3f",
+                                       ImGuiInputTextFlags_ReadOnly);
+
+                    {
+                      glm::vec3 scale;
+                      glm::quat orientation;
+                      glm::vec3 position;
+                      glm::vec3 skew;
+                      glm::vec4 perspective;
+                      glm::decompose(joint, scale, orientation, position, skew, perspective);
+
+                      snprintf(matrix_name, sizeof(matrix_name), "##joint anim guizmo%d", i);
+                      ImGui::gizmo3D(matrix_name, position, orientation);
+                    }
+
+                    ++i;
+                  }
+                }
+                ImGui::TreePop();
+              }
+            }
+            if (registry.has<Components::MotionCaptureAnimation>(*selected_entity)) {
+              if (ImGui::TreeNode("Motion Capture Animation Component")) {
+                auto& animation =
+                  registry.get<Components::MotionCaptureAnimation>(*selected_entity);
+                const auto& current_animation =
+                  resource_manager.motion_capture_cache().handle(animation.id);
+                ImGui::Text("Name: %s", current_animation->name.c_str());
+
+                ImGui::SliderFloat("Scale", &animation.scale, 0.0f, 1e6f, "%f", 10.0f);
+                ImGui::SliderFloat("Node Size", &animation.node_size, 0.0f, 100.0f, "%f", 10.0f);
+
+                ImGui::InputFloat("Frame Rate",
+                                  const_cast<float*>(&current_animation->frame_rate),
+                                  0.0f,
+                                  0.0f,
+                                  "%.3f",
+                                  ImGuiInputTextFlags_ReadOnly);
+
+                uint32_t slider_min = 0;
+                uint32_t frame_count =
+                  current_animation->frame_points.size() / current_animation->point_count;
+                if (ImGui::SliderScalar("Frame",
+                                        ImGuiDataType_U32,
+                                        &animation.current_frame,
+                                        &slider_min,
+                                        &frame_count)) {
+                  auto time_per_frame = 1.0f / current_animation->frame_rate;
+                  animation.current_time = time_per_frame * animation.current_frame;
+                }
+                if (!animation.animating) {
+                  bool reset = false;
+                  if (animation.current_frame == 0) {
+                    if (ImGui::Button("Start")) {
+                      reset = true;
+                    }
+                  } else {
+                    if (ImGui::Button("Reset")) {
+                      reset = true;
+                    }
+                  }
+                  if (animation.current_frame < frame_count - 1) {
+                    if (ImGui::Button("Resume")) {
+                      animation.animating = true;
+                    }
+                  }
+                  if (reset) {
+                    animation.current_frame = 0;
+                    animation.current_time = 0;
                     animation.animating = true;
                   }
                 }
-                if (reset) {
-                  animation.current_frame = 0;
-                  animation.current_time = 0;
-                  animation.animating = true;
+                if (animation.animating) {
+                  if (ImGui::Button("Pause")) {
+                    animation.animating = false;
+                  }
                 }
+                ImGui::Checkbox("Animating", &animation.animating);
+                ImGui::Checkbox("Loop", &animation.loop);
+                ImGui::TreePop();
               }
-              if (animation.animating) {
-                if (ImGui::Button("Pause")) {
-                  animation.animating = false;
-                }
-              }
-              ImGui::Checkbox("Animating", &animation.animating);
-              ImGui::Checkbox("Loop", &animation.loop);
-              ImGui::TreePop();
             }
           }
-          if (registry.has<Components::MotionCaptureAnimation>(*selected_entity)) {
-            if (ImGui::TreeNode("Motion Capture Animation Component")) {
-              auto& animation = registry.get<Components::MotionCaptureAnimation>(*selected_entity);
-              const auto& current_animation =
-                resource_manager.motion_capture_cache().handle(animation.id);
-              ImGui::Text("Name: %s", current_animation->name.c_str());
-
-              ImGui::SliderFloat("Scale", &animation.scale, 0.0f, 1e6f, "%f", 10.0f);
-              ImGui::SliderFloat("Node Size", &animation.node_size, 0.0f, 100.0f, "%f", 10.0f);
-
-              ImGui::InputFloat("Frame Rate",
-                                const_cast<float*>(&current_animation->frame_rate),
-                                0.0f,
-                                0.0f,
-                                "%.3f",
-                                ImGuiInputTextFlags_ReadOnly);
-
-              uint32_t slider_min = 0;
-              uint32_t frame_count =
-                current_animation->frame_points.size() / current_animation->point_count;
-              if (ImGui::SliderScalar("Frame",
-                                      ImGuiDataType_U32,
-                                      &animation.current_frame,
-                                      &slider_min,
-                                      &frame_count)) {
-                auto time_per_frame = 1.0f / current_animation->frame_rate;
-                animation.current_time = time_per_frame * animation.current_frame;
-              }
-              if (!animation.animating) {
-                bool reset = false;
-                if (animation.current_frame == 0) {
-                  if (ImGui::Button("Start")) {
-                    reset = true;
-                  }
-                } else {
-                  if (ImGui::Button("Reset")) {
-                    reset = true;
-                  }
-                }
-                if (animation.current_frame < frame_count - 1) {
-                  if (ImGui::Button("Resume")) {
-                    animation.animating = true;
-                  }
-                }
-                if (reset) {
-                  animation.current_frame = 0;
-                  animation.current_time = 0;
-                  animation.animating = true;
-                }
-              }
-              if (animation.animating) {
-                if (ImGui::Button("Pause")) {
-                  animation.animating = false;
-                }
-              }
-              ImGui::Checkbox("Animating", &animation.animating);
-              ImGui::Checkbox("Loop", &animation.loop);
-              ImGui::TreePop();
-            }
-          }
+          ImGui::EndChild();
         }
-        ImGui::EndChild();
         // Allow dropping assets into component if an entity is selected
         entity_dnd_target(scene, *selected_entity, resource_manager);
       }
@@ -519,47 +585,7 @@ Ui::entity_accept_animation(Scene& scene,
   assert(payload->DataSize == sizeof(id));
   memcpy(&id, payload->Data, sizeof(id));
 
-  const auto& animation_resource = resource_manager.animation_cache().handle(id);
-
-  auto& armature = scene.registry().get<Components::Armature>(entity);
-  if (armature.joints.size() != animation_resource->keyframes[0].bones.size()) {
-    return false;
-  };
-
-  auto& animation = scene.registry().emplace<Components::Animation>(entity, id);
-  animation.loop = true;
-  animation.animating = true;
-  auto& mesh = scene.registry().get<Components::Mesh>(entity);
-  const auto& mesh_resource = resource_manager.mesh_cache().handle(mesh.id);
-
-  animation.transformed_matrices.reserve(animation_resource->keyframes.size());
-  for (uint32_t i = 0; i < animation_resource->keyframes.size(); i++) {
-    animation.transformed_matrices.push_back(std::vector<glm::mat4>());
-    animation.transformed_matrices[i].reserve(animation_resource->keyframes[i].bones.size());
-    for (uint32_t j = 0; j < animation_resource->keyframes[i].bones.size(); j++) {
-      int parent_id = mesh_resource->bones[j].parent;
-
-      auto transformed_mat = animation_resource->keyframes[i].bones[j];
-
-      while (parent_id != -1) {
-        const bone_t& parent_bone = mesh_resource->bones[parent_id];
-        const mat4 parent_joint = animation_resource->keyframes[i].bones[parent_id];
-
-        transformed_mat = parent_joint * transformed_mat;
-
-        parent_id = parent_bone.parent;
-      }
-
-      animation.transformed_matrices[i].push_back(transformed_mat);
-    }
-  }
-
-  // Can't have both animation and mocap animation
-  if (scene.registry().has<Components::MotionCaptureAnimation>(entity)) {
-    scene.registry().remove<Components::MotionCaptureAnimation>(entity);
-  }
-
-  return true;
+  return scene.attach_animation(entity, id, resource_manager);
 }
 
 bool

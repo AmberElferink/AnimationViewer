@@ -192,7 +192,7 @@ Scene::process_event(const SDL_Event& event, std::chrono::microseconds& dt)
 void
 Scene::add_mesh(ENTT_ID_TYPE id,
                 const std::optional<glm::vec2>& screen_space_position,
-                ResourceManager& resource_manager)
+                const ResourceManager& resource_manager)
 {
   const auto& mesh = resource_manager.mesh_cache().handle(id);
 
@@ -260,6 +260,82 @@ Scene::add_mesh(ENTT_ID_TYPE id,
   }
 }
 
+bool
+Scene::attach_animation(const entt::entity& entity,
+                        ENTT_ID_TYPE id,
+                        const ResourceManager& resource_manager)
+{
+  const auto animation_resource = resource_manager.animation_cache().handle(id);
+
+  auto& armature = registry_.get<Components::Armature>(entity);
+  if (armature.joints.size() != animation_resource->keyframes[0].bones.size()) {
+    auto& animation = registry_.emplace<Components::Animation>(entity, id);
+    animation.loop = true;
+    animation.animating = true;
+    auto& mesh = registry_.get<Components::Mesh>(entity);
+    const auto& mesh_resource = resource_manager.mesh_cache().handle(mesh.id);
+
+    std::unordered_map<std::string, uint32_t> bone_map;
+    for (uint32_t i = 0; i < mesh_resource->bones.size(); ++i) {
+      bone_map.emplace(mesh_resource->bones[i].name, i);
+    }
+
+    animation.transformed_matrices.resize(animation_resource->keyframes.size());
+    for (uint32_t i = 0; i < animation_resource->keyframes.size(); ++i) {
+      animation.transformed_matrices[i].resize(armature.joints.size());
+      for (uint32_t j = 0; j < armature.joints.size(); ++j) {
+        animation.transformed_matrices[i][j] = armature.joints[j];
+      }
+      for (uint32_t j = 0; j < animation_resource->joint_names.size(); ++j) {
+        auto name = animation_resource->joint_names[j];
+        auto found = bone_map.find(name);
+        if (found != bone_map.end()) {
+          printf("%s\n", name.c_str());
+          animation.transformed_matrices[i][found->second] =
+            animation_resource->keyframes[i].bones[j];
+        }
+      }
+    }
+
+  } else {
+
+    auto& animation = registry_.emplace<Components::Animation>(entity, id);
+    animation.loop = true;
+    animation.animating = true;
+    auto& mesh = registry_.get<Components::Mesh>(entity);
+    const auto& mesh_resource = resource_manager.mesh_cache().handle(mesh.id);
+
+    animation.transformed_matrices.reserve(animation_resource->keyframes.size());
+    for (uint32_t i = 0; i < animation_resource->keyframes.size(); i++) {
+      animation.transformed_matrices.push_back(std::vector<glm::mat4>());
+      animation.transformed_matrices[i].reserve(animation_resource->keyframes[i].bones.size());
+      for (uint32_t j = 0; j < animation_resource->keyframes[i].bones.size(); j++) {
+        int parent_id = mesh_resource->bones[j].parent;
+
+        auto transformed_mat = animation_resource->keyframes[i].bones[j];
+
+        while (parent_id != -1) {
+          const bone_t& parent_bone = mesh_resource->bones[parent_id];
+          const glm::mat4 parent_joint = animation_resource->keyframes[i].bones[parent_id];
+
+          transformed_mat = parent_joint * transformed_mat;
+
+          parent_id = parent_bone.parent;
+        }
+
+        animation.transformed_matrices[i].push_back(transformed_mat);
+      }
+    }
+  }
+
+  // Can't have both animation and mocap animation
+  if (registry_.has<Components::MotionCaptureAnimation>(entity)) {
+    registry_.remove<Components::MotionCaptureAnimation>(entity);
+  }
+
+  return true;
+}
+
 entt::registry&
 Scene::registry()
 {
@@ -277,7 +353,8 @@ Scene::default_camera()
 {
   return Components::Camera{
     .fov_y = glm::radians(80.0f),
-    .near = 1.0f,
+    .aspect = 1.0f,
+    .near = 0.01f,
     .far = 1000.0f,
   };
 }
