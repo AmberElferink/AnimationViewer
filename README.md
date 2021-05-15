@@ -35,7 +35,9 @@ Because this project is meant to give us an insight in using animation and MoCap
 
 We support L3D, ANM, C3D, FBX, GLTF files. BVH is also partially supported, however for this the animations do not show perfectly. We implemented a skeleton structure and keyframe blending for smooth animations. We implemented skinning and a easy to use interface that allows for maximum flexibility and easy use for an animator.
 
-![Interface labeled with numbers](footage/Interface Explanation.png "Figure 1, showing the different sections of the interface")
+
+
+![Interface labeled with numbers](https://github.com/AmberElferink/AnimationViewer/blob/master/footage/Interface%20Explanation.png "Figure 1, showing the different sections of the interface")
 
 All libraries that have been used can be found in the references.  The interface can be seen in Figure 1.
 
@@ -43,13 +45,13 @@ All libraries that have been used can be found in the references.  The interface
 
 To get the animation working, we created some data structures. Models, or Mesh Assets, have a struct per vertex in the model and a Joint struct for each joint in the model. Both have position and orientation information and the vertices have the id of the Joint they belong to. Animation assets have Frame structs with a 4 by 4 matrix of each joint in that frame. An Animation struct keeps a list of frames in addition to other information like name, frame rate and frame count of the animation. When all the above is brought together in the application we get Components that are attached to an object in the scene. These have structs like Transform, that has the current location and scale vectors and the rotation quaternions. It also has an animation, that encodes information like the current time and frame and variables like if the animation needs to be looped.
 
-![Interface demonstrated with transformations](footage/overview component.gif "Demonstration of the framework with Components")
+![Interface demonstrated with transformations](https://github.com/AmberElferink/AnimationViewer/blob/master/footage/overview%20component.gif "Demonstration of the framework with Components")
 
 The application is created almost entirely from scratch and is created in C++ with OpenGL and GLSL shaders. It uses an Entity Component System from the EnTT library and GLSLang, GLAD and SPIR-V Cross for pre-compiling shaders. For mathematics, GLM is used.
 
 ## File types
 
-![l3d, anm, c3d and fbx playing in one view](footage/all meshes.gif "l3d, anm, c3d and fbx playing in one view")
+![l3d, anm, c3d and fbx playing in one view](https://github.com/AmberElferink/AnimationViewer/blob/master/footage/all%20meshes.gif "l3d, anm, c3d and fbx playing in one view")
 
 To make this application work, we implemented several file types. We first started of with an old file format, L3D, to import models. We continued on to use ANM files for the animation with these L3D files. For both those filetypes we used an OpenBlack parser.
 
